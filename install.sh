@@ -1,3 +1,4 @@
+# 安装MemoChat所需依赖
 #!/bin/bash
 
 echo "🚀 开始安装MemoChat依赖..."
