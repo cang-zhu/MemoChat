@@ -13,11 +13,11 @@ const defaultConfig = {
   // 聊天记录路径配置
   chatRecords: {
     wechat: {
-      windows: "C:\\Users\\%USERNAME%\\Documents\\WeChat Files",
-      mac: path.join(os.homedir(), "Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat")
+      windows: "",
+      mac: ""
     },
     qq: {
-      windows: "C:\\Users\\%USERNAME%\\Documents\\Tencent Files",
+      windows: "",
       mac: ""
     }
   },
@@ -25,7 +25,8 @@ const defaultConfig = {
   app: {
     defaultExportPath: path.join(os.homedir(), "Documents"),
     language: "zh-CN",
-    theme: "light"
+    theme: "light",
+    initialized: false // 添加初始化标记
   }
 };
 
@@ -47,7 +48,7 @@ function loadUserConfig() {
   if (fs.existsSync(userConfigPath)) {
     try {
       const userConfig = JSON.parse(fs.readFileSync(userConfigPath, 'utf8'));
-      return { ...defaultConfig, ...userConfig };
+      return mergeConfig(defaultConfig, userConfig);
     } catch (error) {
       console.error('加载用户配置失败:', error);
       return defaultConfig;
@@ -57,6 +58,25 @@ function loadUserConfig() {
     saveUserConfig(defaultConfig);
     return defaultConfig;
   }
+}
+
+// 深度合并配置对象
+function mergeConfig(defaultConfig, userConfig) {
+  const merged = JSON.parse(JSON.stringify(defaultConfig));
+  
+  function deepMerge(target, source) {
+    for (const key in source) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        if (!target[key]) target[key] = {};
+        deepMerge(target[key], source[key]);
+      } else {
+        target[key] = source[key];
+      }
+    }
+  }
+  
+  deepMerge(merged, userConfig);
+  return merged;
 }
 
 // 保存用户配置
@@ -85,9 +105,37 @@ function updateConfig(key, value) {
   return config;
 }
 
+// 检查是否需要初始化
+function needsInitialization() {
+  const config = loadUserConfig();
+  
+  // 检查API密钥是否配置
+  if (!config.api.key) {
+    return true;
+  }
+  
+  // 检查是否至少配置了一个聊天平台的路径
+  const hasValidPath = Object.values(config.chatRecords).some(platform => 
+    Object.values(platform).some(path => path && path.trim() !== '')
+  );
+  
+  if (!hasValidPath) {
+    return true;
+  }
+  
+  return false;
+}
+
+// 标记初始化完成
+function markInitialized() {
+  updateConfig('app.initialized', true);
+}
+
 module.exports = {
   loadUserConfig,
   saveUserConfig,
   updateConfig,
+  needsInitialization,
+  markInitialized,
   defaultConfig
 };

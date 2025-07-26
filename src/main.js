@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const config = require('./config');
+const SystemDetector = require('./utils/systemDetector');
 
 let mainWindow;
 let pythonProcess;
@@ -18,6 +19,10 @@ function createWindow() {
     }
   });
 
+  // 检查是否需要显示初始化向导
+  const userConfig = config.loadUserConfig();
+  const needsInitialization = !userConfig.api.key || Object.keys(userConfig.chatRecords).length === 0;
+
   // 在开发环境中加载React开发服务器
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:3000');
@@ -26,10 +31,14 @@ function createWindow() {
     // 在生产环境中加载打包后的HTML文件
     mainWindow.loadFile(path.join(__dirname, 'frontend/index.html'));
   }
+
+  // 发送初始化状态到渲染进程
+  mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow.webContents.send('initialization-status', { needsInitialization });
+  });
 }
 
 // 启动Python后端服务
-// 在startPythonBackend函数中修改
 function startPythonBackend() {
   const pythonPath = app.isPackaged
     ? path.join(process.resourcesPath, 'backend')
@@ -40,29 +49,8 @@ function startPythonBackend() {
   // 加载用户配置
   const userConfig = config.loadUserConfig();
   
-  // 确保.env文件存在并更新API密钥
-  const envPath = path.join(app.getAppPath(), '.env');
-  let envContent = '';
-  
-  // 尝试读取现有.env文件
-  if (fs.existsSync(envPath)) {
-    envContent = fs.readFileSync(envPath, 'utf8');
-  }
-  
-  // 更新API密钥
-  const apiKeyRegex = /QWEN_API_KEY=.*/;
-  const newApiKeyLine = `QWEN_API_KEY=${userConfig.api.key || ''}`;
-  
-  if (apiKeyRegex.test(envContent)) {
-    // 替换现有的API密钥行
-    envContent = envContent.replace(apiKeyRegex, newApiKeyLine);
-  } else {
-    // 添加新的API密钥行
-    envContent += `\n${newApiKeyLine}`;
-  }
-  
-  // 保存更新后的.env文件
-  fs.writeFileSync(envPath, envContent);
+  // 确保.env文件存在并更新配置
+  updateEnvFile(userConfig);
   
   // 启动Python后端
   pythonProcess = spawn('python', [scriptPath]);
@@ -78,6 +66,28 @@ function startPythonBackend() {
   pythonProcess.on('close', (code) => {
     console.log(`Python process exited with code ${code}`);
   });
+}
+
+// 更新.env文件
+function updateEnvFile(userConfig) {
+  const envPath = path.join(app.getAppPath(), '.env');
+  
+  const envContent = `# API配置
+QWEN_API_KEY=${userConfig.api.key || ''}
+
+# 聊天记录路径
+WECHAT_PATH_WINDOWS=${userConfig.chatRecords.wechat?.windows || 'C:\\Users\\%USERNAME%\\Documents\\WeChat Files'}
+WECHAT_PATH_MAC=${userConfig.chatRecords.wechat?.mac || ''}
+QQ_PATH_WINDOWS=${userConfig.chatRecords.qq?.windows || 'C:\\Users\\%USERNAME%\\Documents\\Tencent Files'}
+QQ_PATH_MAC=${userConfig.chatRecords.qq?.mac || ''}
+
+# 应用设置
+DEFAULT_EXPORT_PATH=${userConfig.app.defaultExportPath || ''}
+LANGUAGE=${userConfig.app.language || 'zh-CN'}
+THEME=${userConfig.app.theme || 'light'}
+`;
+
+  fs.writeFileSync(envPath, envContent);
 }
 
 app.whenReady().then(() => {
@@ -102,6 +112,88 @@ app.on('activate', () => {
   }
 });
 
+// ========== 初始化相关的IPC处理程序 ==========
+
+// 检测系统信息
+ipcMain.handle('detect-system', async () => {
+  try {
+    const detector = new SystemDetector();
+    return detector.getSystemInfo();
+  } catch (error) {
+    throw new Error('系统检测失败: ' + error.message);
+  }
+});
+
+// 验证API密钥
+ipcMain.handle('validate-api-key', async (event, apiKey) => {
+  try {
+    // 这里可以添加实际的API密钥验证逻辑
+    // 暂时只检查格式
+    if (!apiKey || !apiKey.startsWith('sk-')) {
+      return { valid: false, error: 'API密钥格式不正确' };
+    }
+    
+    // TODO: 实际调用API验证密钥有效性
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: error.message };
+  }
+});
+
+// 验证聊天记录路径
+ipcMain.handle('validate-chat-path', async (event, platform, chatPath) => {
+  try {
+    const detector = new SystemDetector();
+    return detector.validateChatPath(platform, chatPath);
+  } catch (error) {
+    return { valid: false, reason: error.message };
+  }
+});
+
+// 选择目录
+ipcMain.handle('select-directory', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: '选择聊天记录目录'
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
+// 完成初始化
+ipcMain.handle('complete-initialization', async (event, initConfig) => {
+  try {
+    // 保存API密钥
+    config.updateConfig('api.key', initConfig.apiKey);
+    
+    // 保存聊天路径
+    Object.entries(initConfig.chatPaths).forEach(([platform, path]) => {
+      const osType = process.platform === 'win32' ? 'windows' : 'mac';
+      config.updateConfig(`chatRecords.${platform}.${osType}`, path);
+    });
+    
+    // 更新.env文件
+    const userConfig = config.loadUserConfig();
+    updateEnvFile(userConfig);
+    
+    // 创建API密钥文件供Python后端使用
+    const pythonPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'backend')
+      : path.join(__dirname, 'backend');
+    const apiKeyPath = path.join(pythonPath, 'api_key.txt');
+    fs.writeFileSync(apiKeyPath, initConfig.apiKey);
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// ========== 原有的IPC处理程序 ==========
+
 // 处理文件选择对话框
 ipcMain.handle('select-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -118,7 +210,7 @@ ipcMain.handle('select-file', async () => {
   return null;
 });
 
-// 添加IPC处理程序用于保存API密钥
+// 保存API密钥
 ipcMain.handle('save-api-key', async (event, apiKey) => {
   try {
     config.updateConfig('api.key', apiKey);
@@ -130,21 +222,36 @@ ipcMain.handle('save-api-key', async (event, apiKey) => {
     const apiKeyPath = path.join(pythonPath, 'api_key.txt');
     fs.writeFileSync(apiKeyPath, apiKey);
     
+    // 更新.env文件
+    const userConfig = config.loadUserConfig();
+    updateEnvFile(userConfig);
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
 });
 
-// 添加IPC处理程序用于获取/保存聊天记录路径
+// 获取配置
+ipcMain.handle('get-config', async () => {
+  return config.loadUserConfig();
+});
+
+// 获取聊天路径
 ipcMain.handle('get-chat-paths', async () => {
   const userConfig = config.loadUserConfig();
   return userConfig.chatRecords;
 });
 
+// 保存聊天路径
 ipcMain.handle('save-chat-path', async (event, { platform, type, path }) => {
   try {
     config.updateConfig(`chatRecords.${type}.${platform}`, path);
+    
+    // 更新.env文件
+    const userConfig = config.loadUserConfig();
+    updateEnvFile(userConfig);
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

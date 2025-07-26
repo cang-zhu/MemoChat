@@ -1,0 +1,156 @@
+.app {
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5;
+}
+
+.app-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: white;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.app-header {
+  background: white;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.app-header h1 {
+  margin: 0;
+  color: #007bff;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.app-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.app-nav button {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.app-nav button:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+.app-nav button.active {
+  background: #007bff;
+  color: white;
+}
+
+.app-main {
+  padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.main-view {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.main-view h2 {
+  color: #495057;
+  margin-bottom: 16px;
+  font-size: 32px;
+  font-weight: 300;
+}
+
+.main-view p {
+  color: #6c757d;
+  font-size: 18px;
+  margin-bottom: 40px;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 16px 32px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 200px;
+}
+
+.action-btn.primary {
+  background: #007bff;
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.action-btn.secondary {
+  background: white;
+  color: #007bff;
+  border: 2px solid #007bff;
+}
+
+.action-btn.secondary:hover {
+  background: #007bff;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.analysis-view {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-view h2 {
+  color: #495057;
+  margin-bottom: 20px;
+}
+
+.analysis-view p {
+  color: #6c757d;
+  font-size: 16px;
+}
