@@ -27,6 +27,25 @@ const defaultConfig = {
     language: "zh-CN",
     theme: "light",
     initialized: false // 添加初始化标记
+  },
+  // 隐私配置
+  privacy: {
+    level: "basic", // basic | advanced
+    consents: {
+      basicUsage: false,
+      dataSharing: false
+    },
+    consentTimestamp: null,
+    apiKeySource: "user" // user | provided
+  },
+  // 聊天记录提取配置
+  chatExtraction: {
+    enabledPlatforms: ['wechat', 'qq'],
+    autoScan: false,
+    maxFileSize: 100 * 1024 * 1024, // 100MB
+    supportedFormats: ['.txt', '.json', '.csv'],
+    extractionTimeout: 30000, // 30秒
+    batchSize: 1000 // 批处理大小
   }
 };
 
@@ -109,8 +128,13 @@ function updateConfig(key, value) {
 function needsInitialization() {
   const config = loadUserConfig();
   
-  // 检查API密钥是否配置
-  if (!config.api.key) {
+  // 检查隐私授权是否完成
+  if (!hasValidConsent()) {
+    return true;
+  }
+  
+  // 检查API密钥是否配置（基础授权需要用户提供API密钥）
+  if (config.privacy.level === 'basic' && !config.api.key) {
     return true;
   }
   
@@ -131,11 +155,73 @@ function markInitialized() {
   updateConfig('app.initialized', true);
 }
 
+// 添加隐私相关的配置函数
+function updatePrivacyConsent(level, consents) {
+  const config = loadUserConfig();
+  config.privacy = {
+    level,
+    consents,
+    consentTimestamp: new Date().toISOString(),
+    apiKeySource: level === 'basic' ? 'user' : 'provided'
+  };
+  saveUserConfig(config);
+  return config;
+}
+
+function getPrivacyLevel() {
+  const config = loadUserConfig();
+  return config.privacy?.level || 'basic';
+}
+
+function hasValidConsent() {
+  const config = loadUserConfig();
+  const privacy = config.privacy;
+  
+  if (!privacy || !privacy.consentTimestamp) {
+    return false;
+  }
+  
+  if (privacy.level === 'basic') {
+    return privacy.consents.basicUsage;
+  } else {
+    return privacy.consents.basicUsage && privacy.consents.dataSharing;
+  }
+}
+
+// 检查是否可以使用项目提供的API密钥
+function canUseProvidedApiKey() {
+  const config = loadUserConfig();
+  return config.privacy?.level === 'advanced' && 
+         config.privacy?.consents?.dataSharing === true;
+}
+
+// 添加提取器相关的配置函数
+function updateExtractionConfig(key, value) {
+  return updateConfig(`chatExtraction.${key}`, value);
+}
+
+function getExtractionConfig() {
+  const config = loadUserConfig();
+  return config.chatExtraction || defaultConfig.chatExtraction;
+}
+
+function isExtractionEnabled(platform) {
+  const config = getExtractionConfig();
+  return config.enabledPlatforms.includes(platform);
+}
+
 module.exports = {
   loadUserConfig,
   saveUserConfig,
   updateConfig,
   needsInitialization,
   markInitialized,
+  updatePrivacyConsent,
+  getPrivacyLevel,
+  hasValidConsent,
+  canUseProvidedApiKey,
+  updateExtractionConfig,
+  getExtractionConfig,
+  isExtractionEnabled,
   defaultConfig
 };

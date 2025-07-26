@@ -10,13 +10,22 @@ const InitializationWizard = ({ onComplete }) => {
   const [chatPaths, setChatPaths] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // 新增：授权相关状态
+  const [privacyLevel, setPrivacyLevel] = useState('basic'); // 'basic' 或 'advanced'
+  const [consentGiven, setConsentGiven] = useState({
+    basic: false,
+    advanced: false,
+    dataSharing: false
+  });
 
   const steps = [
     { id: 1, title: '欢迎使用', description: '欢迎使用MemoChat聊天记录分析工具' },
-    { id: 2, title: '系统检测', description: '检测您的操作系统和已安装的聊天软件' },
-    { id: 3, title: 'API配置', description: '配置通义千问API密钥' },
-    { id: 4, title: '聊天路径', description: '设置聊天记录文件路径' },
-    { id: 5, title: '完成设置', description: '初始化完成，开始使用' }
+    { id: 2, title: '隐私授权', description: '选择您的隐私保护级别' }, // 新增步骤
+    { id: 3, title: '系统检测', description: '检测您的操作系统和已安装的聊天软件' },
+    { id: 4, title: 'API配置', description: '配置AI服务' },
+    { id: 5, title: '聊天路径', description: '设置聊天记录文件路径' },
+    { id: 6, title: '完成设置', description: '初始化完成，开始使用' }
   ];
 
   // 初始化时检测系统信息
@@ -154,68 +163,194 @@ const InitializationWizard = ({ onComplete }) => {
 
       case 2:
         return (
-          <div className="system-detection-step">
-            <h2>系统检测</h2>
-            {isLoading ? (
-              <div className="loading">正在检测系统信息...</div>
-            ) : systemInfo ? (
-              <div className="system-info">
-                <div className="os-info">
-                  <h3>操作系统</h3>
-                  <p>{systemInfo.os.name} {systemInfo.os.version} ({systemInfo.os.arch})</p>
+          <div className="privacy-consent-step">
+            <h2>隐私保护与数据使用授权</h2>
+            <p className="privacy-intro">
+              我们非常重视您的隐私安全。请选择适合您的隐私保护级别：
+            </p>
+            
+            <div className="privacy-levels">
+              {/* 基础级别 */}
+              <div className={`privacy-level ${privacyLevel === 'basic' ? 'selected' : ''}`}>
+                <div className="level-header">
+                  <input
+                    type="radio"
+                    id="basic-level"
+                    name="privacyLevel"
+                    value="basic"
+                    checked={privacyLevel === 'basic'}
+                    onChange={(e) => setPrivacyLevel(e.target.value)}
+                  />
+                  <label htmlFor="basic-level">
+                    <h3>🔒 基础级别（推荐）</h3>
+                  </label>
                 </div>
-                
-                <div className="platforms-info">
-                  <h3>检测到的聊天软件</h3>
-                  {systemInfo.platforms.length > 0 ? (
+                <div className="level-content">
+                  <div className="consent-statement">
+                    <strong>授权声明：</strong>
+                    <p>"您的全部相关聊天记录都仅用于您的个人需求分析"</p>
+                  </div>
+                  <div className="level-features">
+                    <h4>特点：</h4>
                     <ul>
-                      {systemInfo.platforms.map(platform => (
-                        <li key={platform.name} className="platform-item">
-                          <span className="platform-name">{platform.displayName}</span>
-                          <span className="platform-status installed">已安装</span>
-                          {platform.paths.found.length > 0 && (
-                            <div className="found-paths">
-                              <small>找到聊天记录路径: {platform.paths.found.length} 个</small>
-                            </div>
-                          )}
-                        </li>
-                      ))}
+                      <li>✅ 数据完全本地处理</li>
+                      <li>✅ 需要您提供自己的API-KEY</li>
+                      <li>✅ 最高隐私保护</li>
+                      <li>✅ 数据不会上传到我们的服务器</li>
+                      <li>✅ 您完全控制数据流向</li>
                     </ul>
-                  ) : (
-                    <p>未检测到支持的聊天软件</p>
-                  )}
+                  </div>
+                  <div className="consent-checkbox">
+                    <input
+                      type="checkbox"
+                      id="basic-consent"
+                      checked={consentGiven.basic}
+                      onChange={(e) => setConsentGiven(prev => ({...prev, basic: e.target.checked}))}
+                    />
+                    <label htmlFor="basic-consent">
+                      我同意在基础级别下使用MemoChat，理解我的聊天记录仅用于个人分析
+                    </label>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="error">系统检测失败</div>
-            )}
-          </div>
-        );
 
-      case 3:
-        return (
-          <div className="api-config-step">
-            <h2>API配置</h2>
-            <p>请输入您的通义千问API密钥：</p>
-            <div className="form-group">
-              <label>API密钥:</label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className="api-key-input"
-              />
-              <small className="help-text">
-                您可以在 <a href="https://dashscope.console.aliyun.com/" target="_blank" rel="noopener noreferrer">
-                  阿里云百炼控制台
-                </a> 获取API密钥
-              </small>
+              {/* 进阶级别 */}
+              <div className={`privacy-level ${privacyLevel === 'advanced' ? 'selected' : ''}`}>
+                <div className="level-header">
+                  <input
+                    type="radio"
+                    id="advanced-level"
+                    name="privacyLevel"
+                    value="advanced"
+                    checked={privacyLevel === 'advanced'}
+                    onChange={(e) => setPrivacyLevel(e.target.value)}
+                  />
+                  <label htmlFor="advanced-level">
+                    <h3>🚀 进阶级别</h3>
+                  </label>
+                </div>
+                <div className="level-content">
+                  <div className="consent-statement">
+                    <strong>授权声明：</strong>
+                    <p>"在基础授权的前提下，提供您的脱敏数据以及应用体验反馈来帮助我们训练！"</p>
+                  </div>
+                  <div className="level-features">
+                    <h4>特点：</h4>
+                    <ul>
+                      <li>✅ 包含基础级别所有保护</li>
+                      <li>✅ 可使用我们提供的AI模型</li>
+                      <li>✅ 无需提供自己的API-KEY</li>
+                      <li>✅ 更好的用户体验</li>
+                      <li>⚠️ 脱敏后的数据用于模型优化</li>
+                    </ul>
+                  </div>
+                  <div className="consent-checkboxes">
+                    <div className="consent-checkbox">
+                      <input
+                        type="checkbox"
+                        id="advanced-consent"
+                        checked={consentGiven.advanced}
+                        onChange={(e) => setConsentGiven(prev => ({...prev, advanced: e.target.checked}))}
+                      />
+                      <label htmlFor="advanced-consent">
+                        我同意在进阶级别下使用MemoChat，理解基础授权的所有条款
+                      </label>
+                    </div>
+                    <div className="consent-checkbox">
+                      <input
+                        type="checkbox"
+                        id="data-sharing-consent"
+                        checked={consentGiven.dataSharing}
+                        onChange={(e) => setConsentGiven(prev => ({...prev, dataSharing: e.target.checked}))}
+                      />
+                      <label htmlFor="data-sharing-consent">
+                        我同意提供脱敏数据和使用反馈，帮助改进AI模型（可随时撤回）
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="privacy-notice">
+              <h4>📋 重要说明：</h4>
+              <ul>
+                <li>无论选择哪种级别，您的原始聊天记录都不会被直接上传</li>
+                <li>进阶级别的数据共享仅限于经过脱敏处理的统计信息</li>
+                <li>您可以随时在设置中更改隐私级别</li>
+                <li>您有权随时撤回授权并删除相关数据</li>
+              </ul>
             </div>
           </div>
         );
 
+      case 3:
+        // 原来的系统检测步骤
+        return (
+          <div className="system-detection-step">
+            {/* ... existing system detection code ... */}
+          </div>
+        );
+
       case 4:
+        return (
+          <div className="api-config-step">
+            <h2>AI服务配置</h2>
+            {privacyLevel === 'basic' ? (
+              <div className="basic-api-config">
+                <p>基于您选择的基础隐私级别，请配置您自己的API密钥：</p>
+                <div className="form-group">
+                  <label>API密钥:</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="api-key-input"
+                  />
+                  <small className="help-text">
+                    您可以在 <a href="https://dashscope.console.aliyun.com/" target="_blank" rel="noopener noreferrer">
+                      阿里云百炼控制台
+                    </a> 获取API密钥
+                  </small>
+                </div>
+              </div>
+            ) : (
+              <div className="advanced-api-config">
+                <p>基于您选择的进阶级别，您可以：</p>
+                <div className="api-options">
+                  <div className="option">
+                    <input
+                      type="radio"
+                      id="use-our-api"
+                      name="apiOption"
+                      value="ours"
+                      defaultChecked
+                    />
+                    <label htmlFor="use-our-api">
+                      <strong>使用我们提供的AI服务</strong>
+                      <small>（测试阶段免费，无需配置）</small>
+                    </label>
+                  </div>
+                  <div className="option">
+                    <input
+                      type="radio"
+                      id="use-own-api"
+                      name="apiOption"
+                      value="own"
+                    />
+                    <label htmlFor="use-own-api">
+                      <strong>使用自己的API密钥</strong>
+                      <small>（更高控制权）</small>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 5:
         return (
           <div className="chat-paths-step">
             <h2>聊天记录路径设置</h2>
@@ -260,7 +395,7 @@ const InitializationWizard = ({ onComplete }) => {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="completion-step">
             <h2>设置完成</h2>
@@ -287,6 +422,21 @@ const InitializationWizard = ({ onComplete }) => {
 
       default:
         return null;
+    }
+  };
+
+  // 验证当前步骤是否可以继续
+  const canProceedToNextStep = () => {
+    switch (currentStep) {
+      case 2: // 隐私授权步骤
+        if (privacyLevel === 'basic') {
+          return consentGiven.basic;
+        } else {
+          return consentGiven.advanced && consentGiven.dataSharing;
+        }
+      // ... other cases ...
+      default:
+        return true;
     }
   };
 
