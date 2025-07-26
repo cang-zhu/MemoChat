@@ -1,0 +1,53 @@
+{
+  "name": "memochat",
+  "version": "0.1.0",
+  "description": "AI智能聊天摘要应用（适用于微信/QQ聊天记录）",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "chat",
+    "summary",
+    "AI",
+    "WeChat",
+    "QQ"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "^25.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.5",
+    "@babel/preset-react": "^7.22.5",
+    "babel-loader": "^9.1.2",
+    "electron-builder": "^24.4.0",
+    "webpack": "^5.85.0",
+    "webpack-cli": "^5.1.1"
+  },
+  "build": {
+    "appId": "com.memochat.app",
+    "productName": "MemoChat",
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "src/backend",
+        "to": "backend"
+      }
+    ]
+  }
+}
