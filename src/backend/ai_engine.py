@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class QwenAI:
-    def __init__(self, api_key=None):
+    def __init__(self, api_key=None, model=None):
         # 优先使用传入的API密钥，其次使用环境变量，最后尝试从文件读取
         if api_key is None:
             api_key = os.getenv('QWEN_API_KEY')
@@ -21,7 +21,7 @@ class QwenAI:
         
         self.api_key = api_key
         self.api_url = os.getenv('QWEN_API_URL') or "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
-        self.model = os.getenv('QWEN_MODEL') or "qwen-max"
+        self.model = model or os.getenv('QWEN_MODEL') or "qwen-turbo"  # 支持传入模型参数
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"

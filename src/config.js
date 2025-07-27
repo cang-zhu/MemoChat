@@ -8,7 +8,12 @@ const defaultConfig = {
   api: {
     key: "", // 默认为空，需要用户设置
     url: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-    model: "qwen-max"
+    model: "qwen-turbo", // 改为免费模型作为默认
+    availableModels: [
+      { name: "qwen-turbo", displayName: "通义千问-Turbo (免费)", free: true },
+      { name: "qwen-plus", displayName: "通义千问-Plus (付费)", free: false },
+      { name: "qwen-max", displayName: "通义千问-Max (付费)", free: false }
+    ]
   },
   // 聊天记录路径配置
   chatRecords: {

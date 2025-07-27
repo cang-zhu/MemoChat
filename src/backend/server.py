@@ -211,27 +211,5 @@ def extract_chat_unified():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/export-summary', methods=['POST'])
-def export_summary():
-    data = request.json
-    summary = data.get('summary')
-    export_path = data.get('export_path')
-    
-    if not export_path:
-        export_path = os.getenv('DEFAULT_EXPORT_PATH') or os.path.expanduser('~/Documents')
-    
-    # 确保导出目录存在
-    os.makedirs(export_path, exist_ok=True)
-    
-    # 生成文件名
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    file_path = os.path.join(export_path, f'MemoChat_Summary_{timestamp}.txt')
-    
-    # 保存摘要
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(summary)
-    
-    return jsonify({'success': True, 'file_path': file_path})
-
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000)

@@ -4,6 +4,8 @@ import './SettingsPanel.css';
 
 const SettingsPanel = () => {
   const [apiKey, setApiKey] = useState('');
+  const [selectedModel, setSelectedModel] = useState('qwen-turbo'); // 新增
+  const [availableModels, setAvailableModels] = useState([]); // 新增
   const [wechatPath, setWechatPath] = useState({ windows: '', mac: '' });
   const [qqPath, setQQPath] = useState({ windows: '', mac: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -15,6 +17,8 @@ const SettingsPanel = () => {
       // 加载API密钥
       const config = await ipcRenderer.invoke('get-config');
       setApiKey(config.api.key || '');
+      setSelectedModel(config.api.model || 'qwen-turbo'); // 新增
+      setAvailableModels(config.api.availableModels || []); // 新增
       
       // 加载聊天记录路径
       const chatPaths = await ipcRenderer.invoke('get-chat-paths');
@@ -58,6 +62,20 @@ const SettingsPanel = () => {
     }
   };
 
+  // 保存模型选择
+  const handleSaveModel = async () => {
+    try {
+      const result = await ipcRenderer.invoke('save-model-config', selectedModel);
+      if (result.success) {
+        setMessage('模型配置保存成功！');
+      } else {
+        setMessage(`保存失败: ${result.error}`);
+      }
+    } catch (error) {
+      setMessage(`发生错误: ${error.message}`);
+    }
+  };
+
   return (
     <div className="settings-panel">
       <h2>应用设置</h2>
@@ -76,6 +94,27 @@ const SettingsPanel = () => {
             {isSaving ? '保存中...' : '保存'}
           </button>
         </div>
+        
+        {/* 新增模型选择 */}
+        <div className="form-group">
+          <label>AI模型选择:</label>
+          <select 
+            value={selectedModel} 
+            onChange={(e) => setSelectedModel(e.target.value)}
+          >
+            {availableModels.map(model => (
+              <option key={model.name} value={model.name}>
+                {model.displayName}
+              </option>
+            ))}
+          </select>
+          <button onClick={handleSaveModel}>保存模型</button>
+          <small style={{display: 'block', color: '#666', marginTop: '4px'}}>
+            {availableModels.find(m => m.name === selectedModel)?.free ? 
+              '✅ 免费模型' : '💰 付费模型（需要相应权限）'}
+          </small>
+        </div>
+        
         {message && <div className="message">{message}</div>}
       </div>
       

@@ -123,22 +123,25 @@ const InitializationWizard = ({ onComplete }) => {
   // 完成初始化
   const completeInitialization = async () => {
     setIsLoading(true);
+    setError('');
+    
     try {
-      // 保存所有配置到.env文件
       const config = {
+        privacyLevel,
         apiKey,
-        chatPaths,
-        systemInfo
+        selectedModel, // 新增
+        chatPaths
       };
       
       const result = await ipcRenderer.invoke('complete-initialization', config);
+      
       if (result.success) {
         onComplete();
       } else {
-        setError('初始化失败: ' + result.error);
+        setError(result.error || '初始化失败');
       }
     } catch (error) {
-      setError('初始化失败: ' + error.message);
+      setError('初始化过程中发生错误: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -299,6 +302,8 @@ const InitializationWizard = ({ onComplete }) => {
             {privacyLevel === 'basic' ? (
               <div className="basic-api-config">
                 <p>基于您选择的基础隐私级别，请配置您自己的API密钥：</p>
+                
+                {/* API密钥配置 */}
                 <div className="form-group">
                   <label>API密钥:</label>
                   <input
@@ -312,6 +317,35 @@ const InitializationWizard = ({ onComplete }) => {
                     您可以在 <a href="https://dashscope.console.aliyun.com/" target="_blank" rel="noopener noreferrer">
                       阿里云百炼控制台
                     </a> 获取API密钥
+                  </small>
+                </div>
+
+                {/* 模型选择 */}
+                <div className="form-group">
+                  <label>AI模型选择:</label>
+                  <div className="model-selection">
+                    {availableModels.map(model => (
+                      <div key={model.name} className="model-option">
+                        <input
+                          type="radio"
+                          id={`model-${model.name}`}
+                          name="selectedModel"
+                          value={model.name}
+                          checked={selectedModel === model.name}
+                          onChange={(e) => setSelectedModel(e.target.value)}
+                        />
+                        <label htmlFor={`model-${model.name}`} className="model-label">
+                          <div className="model-name">
+                            {model.displayName}
+                            {model.free && <span className="free-badge">免费</span>}
+                          </div>
+                          <div className="model-description">{model.description}</div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <small className="help-text">
+                    推荐选择 <strong>qwen-turbo</strong> 模型，免费且性能优秀
                   </small>
                 </div>
               </div>
@@ -405,7 +439,13 @@ const InitializationWizard = ({ onComplete }) => {
                 <strong>操作系统:</strong> {systemInfo?.os.name}
               </div>
               <div className="summary-item">
+                <strong>隐私级别:</strong> {privacyLevel === 'basic' ? '基础' : '进阶'}
+              </div>
+              <div className="summary-item">
                 <strong>API密钥:</strong> 已配置
+              </div>
+              <div className="summary-item">
+                <strong>AI模型:</strong> {availableModels.find(m => m.name === selectedModel)?.displayName}
               </div>
               <div className="summary-item">
                 <strong>聊天平台:</strong>
