@@ -61,8 +61,14 @@ function startPythonBackend() {
   // 确保.env文件存在并更新配置
   updateEnvFile(userConfig);
   
+  // 根据操作系统选择合适的Python命令
+  const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+  
   // 启动Python后端
-  pythonProcess = spawn('python', [scriptPath]);
+  pythonProcess = spawn(pythonCommand, [scriptPath], {
+    cwd: pythonPath,  // 设置工作目录
+    env: { ...process.env }  // 继承环境变量
+  });
   
   pythonProcess.stdout.on('data', (data) => {
     console.log(`Python stdout: ${data}`);
@@ -74,6 +80,11 @@ function startPythonBackend() {
   
   pythonProcess.on('close', (code) => {
     console.log(`Python process exited with code ${code}`);
+  });
+  
+  pythonProcess.on('error', (error) => {
+    console.error(`Failed to start Python process: ${error.message}`);
+    // 可以在这里添加错误处理逻辑，比如显示用户友好的错误信息
   });
 }
 

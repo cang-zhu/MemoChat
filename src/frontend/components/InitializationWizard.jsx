@@ -19,6 +19,14 @@ const InitializationWizard = ({ onComplete }) => {
     dataSharing: false
   });
 
+  // 添加缺失的模型选择状态
+  const [selectedModel, setSelectedModel] = useState('qwen-turbo');
+  const [availableModels, setAvailableModels] = useState([
+    { name: "qwen-turbo", displayName: "通义千问-Turbo (免费)", free: true, description: "快速响应，适合日常使用" },
+    { name: "qwen-plus", displayName: "通义千问-Plus (付费)", free: false, description: "更强性能，适合复杂任务" },
+    { name: "qwen-max", displayName: "通义千问-Max (付费)", free: false, description: "最强性能，适合专业场景" }
+  ]);
+
   const steps = [
     { id: 1, title: '欢迎使用', description: '欢迎使用MemoChat聊天记录分析工具' },
     { id: 2, title: '隐私授权', description: '选择您的隐私保护级别' }, // 新增步骤

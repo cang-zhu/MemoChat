@@ -1,0 +1,189 @@
+.settings-panel {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.settings-panel h2 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 24px;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.settings-section {
+  margin-bottom: 40px;
+}
+
+.settings-section h3 {
+  color: #555;
+  margin-bottom: 20px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-section h3::before {
+  content: "⚙️";
+  font-size: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input[type="password"],
+.form-group input[type="text"],
+.form-group select {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input[type="password"]:focus,
+.form-group input[type="text"]:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-group button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.form-group button:hover {
+  background: #0056b3;
+}
+
+.form-group button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.path-input {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.path-input input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.path-input button {
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.message {
+  padding: 12px;
+  border-radius: 4px;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* 模型选择特殊样式 */
+.model-selection-group {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.model-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.model-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.model-badge.free {
+  background: #d4edda;
+  color: #155724;
+}
+
+.model-badge.paid {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.current-model-display {
+  background: #e7f3ff;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border-left: 4px solid #007bff;
+}
+
+.current-model-display strong {
+  color: #007bff;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .settings-panel {
+    margin: 10px;
+    padding: 15px;
+  }
+  
+  .path-input {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .path-input button {
+    margin-top: 10px;
+  }
+  
+  .form-group input[type="password"],
+  .form-group input[type="text"],
+  .form-group select {
+    max-width: 100%;
+  }
+}

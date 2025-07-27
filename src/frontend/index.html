@@ -162,6 +162,18 @@
                         </div>
                         
                         <div style="margin: 20px 0;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">AI模型选择：</label>
+                            <select id="selectedModel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                                <option value="qwen-turbo">通义千问-Turbo (免费)</option>
+                                <option value="qwen-plus">通义千问-Plus (付费)</option>
+                                <option value="qwen-max">通义千问-Max (付费)</option>
+                            </select>
+                            <small style="display: block; color: #666; margin-top: 5px;">
+                                推荐使用 Turbo 模型，免费且性能优秀
+                            </small>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
                             <label style="display: block; margin-bottom: 5px; font-weight: bold;">聊天记录路径：</label>
                             <button onclick="selectChatPath()" 
                                     style="padding: 10px 20px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -230,7 +242,274 @@
             `;
             updateBackButton();
         }
-        
+
+        // 设置页面
+        function openSettings() {
+            console.log('Opening settings');
+            addToHistory('settings');
+            
+            const root = document.getElementById('root');
+            root.innerHTML = `
+                ${createBackButton()}
+                <div style="padding: 40px; max-width: 800px; margin: 0 auto;">
+                    <h1 style="text-align: center; color: #333;">⚙️ 应用设置</h1>
+                    <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        
+                        <!-- API设置区域 -->
+                        <div style="margin-bottom: 40px;">
+                            <h3 style="color: #495057; margin-bottom: 20px; font-size: 18px;">🔑 API设置</h3>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">通义千问API密钥:</label>
+                                <input type="password" id="settingsApiKey" placeholder="请输入您的API密钥 (sk-xxxxxxxx...)" 
+                                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+                                <button onclick="saveAPIKey()" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 10px;">
+                                    保存API密钥
+                                </button>
+                                <small style="display: block; color: #666; margin-top: 4px;">
+                                    您可以在 <a href="https://dashscope.console.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云百炼控制台</a> 获取API密钥
+                                </small>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">🤖 AI模型选择:</label>
+                                
+                                <!-- 当前模型显示 -->
+                                <div id="currentModelDisplay" style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef;">
+                                    <strong>当前模型:</strong> <span id="currentModelName">加载中...</span>
+                                    <span id="currentModelBadge" style="margin-left: 10px; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;"></span>
+                                </div>
+                                
+                                <select id="settingsSelectedModel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
+                                    <option value="qwen-turbo">通义千问-Turbo (免费)</option>
+                                    <option value="qwen-plus">通义千问-Plus (付费)</option>
+                                    <option value="qwen-max">通义千问-Max (付费)</option>
+                                </select>
+                                <button onclick="saveModel()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 10px;">
+                                    保存模型配置
+                                </button>
+                                
+                                <div id="modelInfo" style="margin-top: 10px; font-size: 14px;">
+                                    <span style="color: #28a745;">✅ 免费模型，无需额外费用</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 聊天记录路径设置区域 -->
+                        <div style="margin-bottom: 40px;">
+                            <h3 style="color: #495057; margin-bottom: 20px; font-size: 18px;">📁 聊天记录路径设置</h3>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">微信聊天记录路径 (Windows):</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" id="wechatWindowsPath" readonly placeholder="未设置路径" 
+                                           style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button onclick="selectPath('wechat', 'windows')" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                        选择路径
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">微信聊天记录路径 (Mac):</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" id="wechatMacPath" readonly placeholder="未设置路径" 
+                                           style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button onclick="selectPath('wechat', 'mac')" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                        选择路径
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">QQ聊天记录路径 (Windows):</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" id="qqWindowsPath" readonly placeholder="未设置路径" 
+                                           style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button onclick="selectPath('qq', 'windows')" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                        选择路径
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">QQ聊天记录路径 (Mac):</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="text" id="qqMacPath" readonly placeholder="未设置路径" 
+                                           style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button onclick="selectPath('qq', 'mac')" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                        选择路径
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 消息提示区域 -->
+                        <div id="settingsMessage" style="display: none; padding: 10px; margin: 20px 0; border-radius: 4px; border: 1px solid;"></div>
+                    </div>
+                </div>
+            `;
+            updateBackButton();
+            loadSettingsData();
+        }
+
+        // 加载设置数据
+        async function loadSettingsData() {
+            try {
+                const config = await ipcRenderer.invoke('get-config');
+                console.log('Settings config loaded:', config);
+                
+                // 加载API密钥
+                if (config.api?.key) {
+                    document.getElementById('settingsApiKey').value = config.api.key;
+                }
+                
+                // 加载当前模型
+                const currentModel = config.api?.model || 'qwen-turbo';
+                document.getElementById('settingsSelectedModel').value = currentModel;
+                
+                // 显示当前模型信息
+                const modelNames = {
+                    'qwen-turbo': '通义千问-Turbo (免费)',
+                    'qwen-plus': '通义千问-Plus (付费)',
+                    'qwen-max': '通义千问-Max (付费)'
+                };
+                
+                const modelFree = {
+                    'qwen-turbo': true,
+                    'qwen-plus': false,
+                    'qwen-max': false
+                };
+                
+                document.getElementById('currentModelName').textContent = modelNames[currentModel];
+                const badge = document.getElementById('currentModelBadge');
+                badge.textContent = modelFree[currentModel] ? '免费' : '付费';
+                badge.style.background = modelFree[currentModel] ? '#28a745' : '#ffc107';
+                badge.style.color = modelFree[currentModel] ? 'white' : '#212529';
+                
+                // 更新模型信息
+                updateModelInfo(currentModel);
+                
+                // 加载聊天路径
+                const chatPaths = await ipcRenderer.invoke('get-chat-paths');
+                if (chatPaths?.wechat?.windows) {
+                    document.getElementById('wechatWindowsPath').value = chatPaths.wechat.windows;
+                }
+                if (chatPaths?.wechat?.mac) {
+                    document.getElementById('wechatMacPath').value = chatPaths.wechat.mac;
+                }
+                if (chatPaths?.qq?.windows) {
+                    document.getElementById('qqWindowsPath').value = chatPaths.qq.windows;
+                }
+                if (chatPaths?.qq?.mac) {
+                    document.getElementById('qqMacPath').value = chatPaths.qq.mac;
+                }
+                
+            } catch (error) {
+                console.error('加载设置失败:', error);
+                showSettingsMessage('加载设置失败: ' + error.message, 'error');
+            }
+        }
+
+        // 更新模型信息显示
+        function updateModelInfo(model) {
+            const modelInfo = document.getElementById('modelInfo');
+            if (model === 'qwen-turbo') {
+                modelInfo.innerHTML = '<span style="color: #28a745;">✅ 免费模型，无需额外费用</span>';
+            } else {
+                modelInfo.innerHTML = '<span style="color: #ffc107;">💰 付费模型，需要相应权限和余额</span>';
+            }
+        }
+
+        // 监听模型选择变化
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'settingsSelectedModel') {
+                updateModelInfo(e.target.value);
+            }
+        });
+
+        // 显示设置消息
+        function showSettingsMessage(message, type = 'success') {
+            const messageDiv = document.getElementById('settingsMessage');
+            messageDiv.style.display = 'block';
+            messageDiv.textContent = message;
+            
+            if (type === 'success') {
+                messageDiv.style.background = '#d4edda';
+                messageDiv.style.color = '#155724';
+                messageDiv.style.borderColor = '#c3e6cb';
+            } else {
+                messageDiv.style.background = '#f8d7da';
+                messageDiv.style.color = '#721c24';
+                messageDiv.style.borderColor = '#f5c6cb';
+            }
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // 保存API密钥
+        async function saveAPIKey() {
+            const apiKey = document.getElementById('settingsApiKey').value;
+            if (!apiKey) {
+                showSettingsMessage('请输入API密钥', 'error');
+                return;
+            }
+            
+            try {
+                const result = await ipcRenderer.invoke('save-api-key', apiKey);
+                if (result.success) {
+                    showSettingsMessage('API密钥保存成功');
+                } else {
+                    showSettingsMessage('保存失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showSettingsMessage('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        // 保存模型配置
+        async function saveModel() {
+            const selectedModel = document.getElementById('settingsSelectedModel').value;
+            
+            try {
+                const result = await ipcRenderer.invoke('save-model', selectedModel);
+                if (result.success) {
+                    showSettingsMessage('模型配置保存成功');
+                    // 更新当前模型显示
+                    loadSettingsData();
+                } else {
+                    showSettingsMessage('保存失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showSettingsMessage('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        // 选择路径
+        async function selectPath(platform, os) {
+            try {
+                const path = await ipcRenderer.invoke('select-directory');
+                if (path) {
+                    const inputId = `${platform}${os.charAt(0).toUpperCase() + os.slice(1)}Path`;
+                    document.getElementById(inputId).value = path;
+                    
+                    // 保存路径
+                    const result = await ipcRenderer.invoke('save-chat-path', { platform, os, path });
+                    if (result.success) {
+                        showSettingsMessage(`${platform.toUpperCase()} ${os} 路径保存成功`);
+                    } else {
+                        showSettingsMessage('路径保存失败: ' + result.error, 'error');
+                    }
+                }
+            } catch (error) {
+                showSettingsMessage('选择路径失败: ' + error.message, 'error');
+            }
+        }
+
+        // 初始化设置相关函数
         async function selectChatPath() {
             try {
                 const path = await ipcRenderer.invoke('select-directory');
@@ -245,6 +524,7 @@
         
         async function completeSetup() {
             const apiKey = document.getElementById('apiKey').value;
+            const selectedModel = document.getElementById('selectedModel').value;
             const chatPath = window.selectedChatPath;
             
             if (!apiKey) {
@@ -259,7 +539,10 @@
             
             try {
                 const result = await ipcRenderer.invoke('complete-initialization', {
-                    apiKey: apiKey,
+                    api: {
+                        key: apiKey,
+                        model: selectedModel
+                    },
                     chatPaths: {
                         wechat: chatPath,
                         qq: chatPath
@@ -328,69 +611,96 @@
             }
         }
         
-        // 显示聊天分析结果
-        function displayChatAnalysis(data, filePath) {
-            addToHistory('analysis');
-            
-            const { chat_data, contacts } = data;
-            const messageCount = chat_data.length;
-            const contactList = Array.from(contacts).join(', ');
-            
-            // 获取时间范围
-            let timeRange = '';
-            if (messageCount > 0) {
-                const firstMessage = new Date(chat_data[0].timestamp);
-                const lastMessage = new Date(chat_data[messageCount - 1].timestamp);
-                timeRange = `${firstMessage.toLocaleDateString()} - ${lastMessage.toLocaleDateString()}`;
-            }
-            
+        async function scanChats() {
             document.getElementById('results').innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">分析结果</h3>
-                    <button onclick="clearResults()" style="padding: 6px 12px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                        清除结果
-                    </button>
-                </div>
-                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <h4 style="margin: 0 0 10px 0; color: #34C759;">✅ 文件解析成功</h4>
-                    <p><strong>文件路径:</strong> ${filePath}</p>
-                    <p><strong>消息数量:</strong> ${messageCount} 条</p>
-                    <p><strong>参与人员:</strong> ${contactList}</p>
-                    <p><strong>时间范围:</strong> ${timeRange}</p>
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <button onclick="generateSummary()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        生成AI摘要
-                    </button>
-                    <button onclick="showChatDetails()" style="padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        查看详细内容
-                    </button>
-                    <button onclick="filterChat()" style="padding: 8px 16px; background: #FF9500; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        筛选消息
-                    </button>
-                </div>
-                
-                <div id="detailsArea" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
-                    <p style="color: #666;">点击上方按钮查看更多详细信息或生成AI摘要</p>
-                </div>
+                <h3>分析结果</h3>
+                <p style="color: #007AFF;">正在扫描本地聊天记录...</p>
             `;
             
-            // 保存数据到全局变量，供其他函数使用
-            window.currentChatData = chat_data;
-            window.currentContacts = contacts;
-            updateBackButton();
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/scan-chats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // 显示扫描结果
+                displayScanResults(data);
+                
+            } catch (error) {
+                console.error('扫描失败:', error);
+                document.getElementById('results').innerHTML = `
+                    <h3>分析结果</h3>
+                    <p style="color: #FF3B30;">扫描失败: ${error.message}</p>
+                    <p style="color: #666;">请检查聊天记录路径设置是否正确。</p>
+                `;
+            }
         }
         
-        // 生成AI摘要
-        async function generateSummary() {
-            if (!window.currentChatData) {
-                alert('请先选择并分析聊天文件');
+        function displayChatAnalysis(data, filePath) {
+            // 存储当前数据供后续功能使用
+            currentChatData = data.chat_data;
+            currentFilePath = filePath;
+            
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <h3>分析结果</h3>
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color: #007AFF;">📄 文件信息</h4>
+                    <p style="margin: 5px 0;"><strong>文件路径:</strong> ${filePath}</p>
+                    <p style="margin: 5px 0;"><strong>消息总数:</strong> ${data.total_messages || currentChatData?.length || 0}</p>
+                    <p style="margin: 5px 0;"><strong>参与人数:</strong> ${data.contacts?.length || 0}</p>
+                </div>
+                
+                <!-- 功能按钮区域 -->
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #007AFF;">
+                    <h4 style="margin: 0 0 15px 0; color: #007AFF;">🛠️ 分析功能</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                        <button onclick="generateAISummary()" style="padding: 10px 15px; background: #34C759; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            📝 AI摘要
+                        </button>
+                        <button onclick="showFullRecord()" style="padding: 10px 15px; background: #007AFF; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            📋 完整记录
+                        </button>
+                        <button onclick="showContentFilter()" style="padding: 10px 15px; background: #FF9500; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            🔍 内容筛选
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 结果显示区域 -->
+                <div id="analysisResults" style="margin-top: 15px;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; color: #666;">
+                        请选择上方功能按钮查看详细分析结果
+                    </div>
+                </div>
+            `;
+        }
+
+        // AI摘要功能
+        async function generateAISummary() {
+            if (!currentChatData) {
+                alert('没有可用的聊天数据');
                 return;
             }
             
-            document.getElementById('detailsArea').innerHTML = `
-                <p style="color: #007AFF;">正在生成AI摘要，请稍候...</p>
+            const resultsDiv = document.getElementById('analysisResults');
+            resultsDiv.innerHTML = `
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #34C759;">
+                    <h4 style="margin: 0 0 10px 0; color: #34C759;">📝 AI摘要</h4>
+                    <p style="color: #007AFF;">正在生成智能摘要...</p>
+                </div>
             `;
             
             try {
@@ -400,7 +710,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        chat_data: window.currentChatData
+                        chat_data: currentChatData
                     })
                 });
                 
@@ -414,166 +724,253 @@
                     throw new Error(data.error);
                 }
                 
-                document.getElementById('detailsArea').innerHTML = `
-                    <h4 style="margin: 0 0 10px 0; color: #007AFF;">🤖 AI生成摘要</h4>
-                    <div style="background: white; padding: 15px; border-radius: 8px; white-space: pre-wrap;">${data.summary}</div>
-                    <button onclick="exportSummary('${data.summary}')" style="margin-top: 10px; padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        导出摘要
-                    </button>
+                resultsDiv.innerHTML = `
+                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #34C759;">
+                        <h4 style="margin: 0 0 10px 0; color: #34C759;">📝 AI摘要</h4>
+                        <div style="line-height: 1.6; white-space: pre-wrap;">${data.summary}</div>
+                        <button onclick="exportSummary(\`${data.summary.replace(/`/g, '\\`')}\`, 'ai_summary')" 
+                                style="margin-top: 15px; padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            💾 导出摘要
+                        </button>
+                    </div>
                 `;
                 
             } catch (error) {
                 console.error('生成摘要失败:', error);
-                document.getElementById('detailsArea').innerHTML = `
-                    <p style="color: #FF3B30;">生成摘要失败: ${error.message}</p>
-                    <p style="color: #666;">请检查API密钥配置或网络连接。</p>
+                resultsDiv.innerHTML = `
+                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF3B30;">
+                        <h4 style="margin: 0 0 10px 0; color: #FF3B30;">❌ 生成失败</h4>
+                        <p>摘要生成失败: ${error.message}</p>
+                        <p style="color: #666;">请检查API配置或稍后重试。</p>
+                    </div>
                 `;
             }
         }
-        
-        // 显示聊天详细内容
-        function showChatDetails() {
-            if (!window.currentChatData) {
-                alert('请先选择并分析聊天文件');
+
+        // 完整记录功能
+        function showFullRecord() {
+            if (!currentChatData) {
+                alert('没有可用的聊天数据');
                 return;
             }
             
-            const messages = window.currentChatData.slice(0, 50); // 只显示前50条消息
-            let html = `
-                <h4 style="margin: 0 0 10px 0; color: #34C759;">💬 聊天记录详情 (显示前50条)</h4>
-                <div style="background: white; padding: 15px; border-radius: 8px;">
-            `;
+            const resultsDiv = document.getElementById('analysisResults');
             
-            messages.forEach(msg => {
-                const time = new Date(msg.timestamp).toLocaleString();
-                html += `
-                    <div style="margin-bottom: 10px; padding: 8px; border-left: 3px solid #007AFF; background: #f9f9f9;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 3px;">
-                            ${msg.sender} - ${time}
+            // 格式化聊天记录
+            let recordHtml = '';
+            currentChatData.forEach((message, index) => {
+                const timestamp = new Date(message.timestamp).toLocaleString('zh-CN');
+                recordHtml += `
+                    <div style="margin-bottom: 10px; padding: 10px; background: ${index % 2 === 0 ? '#f8f9fa' : '#ffffff'}; border-radius: 4px; border-left: 3px solid #007AFF;">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;">
+                            <strong>${message.sender || '未知用户'}</strong> - ${timestamp}
                         </div>
-                        <div>${msg.content}</div>
+                        <div style="line-height: 1.4;">${message.content || message.message || ''}</div>
                     </div>
                 `;
             });
             
-            html += '</div>';
-            
-            if (window.currentChatData.length > 50) {
-                html += `<p style="color: #666; margin-top: 10px;">还有 ${window.currentChatData.length - 50} 条消息未显示</p>`;
-            }
-            
-            document.getElementById('detailsArea').innerHTML = html;
-        }
-        
-        // 筛选聊天记录
-        function filterChat() {
-            if (!window.currentChatData) {
-                alert('请先选择并分析聊天文件');
-                return;
-            }
-            
-            const contacts = Array.from(window.currentContacts);
-            let contactOptions = contacts.map(contact => `<option value="${contact}">${contact}</option>`).join('');
-            
-            document.getElementById('detailsArea').innerHTML = `
-                <h4 style="margin: 0 0 15px 0; color: #FF9500;">🔍 筛选聊天记录</h4>
-                <div style="background: white; padding: 15px; border-radius: 8px;">
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">按发送者筛选:</label>
-                        <select id="senderFilter" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">全部发送者</option>
-                            ${contactOptions}
-                        </select>
+            resultsDiv.innerHTML = `
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #007AFF;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; color: #007AFF;">📋 完整记录 (共 ${currentChatData.length} 条消息)</h4>
+                        <button onclick="exportSummary(getFullRecordText(), 'full_record')" 
+                                style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            💾 导出记录
+                        </button>
                     </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">开始时间:</label>
-                            <input type="datetime-local" id="startTime" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">结束时间:</label>
-                            <input type="datetime-local" id="endTime" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        </div>
+                    <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px;">
+                        ${recordHtml}
                     </div>
-                    
-                    <button onclick="applyFilter()" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        应用筛选
-                    </button>
                 </div>
             `;
         }
-        
-        // 应用筛选条件
-        async function applyFilter() {
-            const sender = document.getElementById('senderFilter').value;
-            const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
-            
-            try {
-                const response = await fetch('http://127.0.0.1:5000/api/filter-chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        chat_data: window.currentChatData,
-                        sender: sender || undefined,
-                        start_time: startTime || undefined,
-                        end_time: endTime || undefined
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                const filteredData = data.filtered_data;
-                let html = `
-                    <h4 style="margin: 0 0 10px 0; color: #FF9500;">🔍 筛选结果 (${filteredData.length} 条消息)</h4>
-                    <div style="background: white; padding: 15px; border-radius: 8px;">
-                `;
-                
-                if (filteredData.length === 0) {
-                    html += '<p style="color: #666;">没有找到符合条件的消息</p>';
-                } else {
-                    filteredData.slice(0, 30).forEach(msg => {
-                        const time = new Date(msg.timestamp).toLocaleString();
-                        html += `
-                            <div style="margin-bottom: 10px; padding: 8px; border-left: 3px solid #FF9500; background: #f9f9f9;">
-                                <div style="font-size: 12px; color: #666; margin-bottom: 3px;">
-                                    ${msg.sender} - ${time}
-                                </div>
-                                <div>${msg.content}</div>
-                            </div>
-                        `;
-                    });
-                    
-                    if (filteredData.length > 30) {
-                        html += `<p style="color: #666; margin-top: 10px;">还有 ${filteredData.length - 30} 条消息未显示</p>`;
-                    }
-                }
-                
-                html += '</div>';
-                
-                document.getElementById('detailsArea').innerHTML = html;
-                
-            } catch (error) {
-                console.error('筛选失败:', error);
-                document.getElementById('detailsArea').innerHTML = `
-                    <p style="color: #FF3B30;">筛选失败: ${error.message}</p>
-                `;
+
+        // 内容筛选功能
+        function showContentFilter() {
+            if (!currentChatData) {
+                alert('没有可用的聊天数据');
+                return;
             }
+            
+            // 获取所有发送者
+            const senders = [...new Set(currentChatData.map(msg => msg.sender || '未知用户'))];
+            
+            const resultsDiv = document.getElementById('analysisResults');
+            resultsDiv.innerHTML = `
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9500;">
+                    <h4 style="margin: 0 0 15px 0; color: #FF9500;">🔍 内容筛选</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">发送者筛选:</label>
+                            <select id="senderFilter" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="">全部发送者</option>
+                                ${senders.map(sender => `<option value="${sender}">${sender}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">关键词搜索:</label>
+                            <input type="text" id="keywordFilter" placeholder="输入关键词..." 
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">开始时间:</label>
+                            <input type="datetime-local" id="startTimeFilter" 
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">结束时间:</label>
+                            <input type="datetime-local" id="endTimeFilter" 
+                                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button onclick="applyFilters()" style="padding: 10px 20px; background: #FF9500; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                            🔍 应用筛选
+                        </button>
+                        <button onclick="clearFilters()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            🔄 清除筛选
+                        </button>
+                    </div>
+                    
+                    <div id="filterResults" style="border-top: 1px solid #e9ecef; padding-top: 15px;">
+                        <p style="color: #666; text-align: center;">请设置筛选条件并点击"应用筛选"</p>
+                    </div>
+                </div>
+            `;
         }
-        
-        // 导出摘要
-        async function exportSummary(summary) {
+
+        // 应用筛选
+        function applyFilters() {
+            const sender = document.getElementById('senderFilter').value;
+            const keyword = document.getElementById('keywordFilter').value;
+            const startTime = document.getElementById('startTimeFilter').value;
+            const endTime = document.getElementById('endTimeFilter').value;
+            
+            let filteredData = [...currentChatData];
+            
+            // 按发送者筛选
+            if (sender) {
+                filteredData = filteredData.filter(msg => msg.sender === sender);
+            }
+            
+            // 按关键词筛选
+            if (keyword) {
+                filteredData = filteredData.filter(msg => 
+                    (msg.content || msg.message || '').toLowerCase().includes(keyword.toLowerCase())
+                );
+            }
+            
+            // 按时间筛选
+            if (startTime) {
+                const startDate = new Date(startTime);
+                filteredData = filteredData.filter(msg => new Date(msg.timestamp) >= startDate);
+            }
+            
+            if (endTime) {
+                const endDate = new Date(endTime);
+                filteredData = filteredData.filter(msg => new Date(msg.timestamp) <= endDate);
+            }
+            
+            // 显示筛选结果
+            displayFilterResults(filteredData);
+        }
+
+        // 显示筛选结果
+        function displayFilterResults(filteredData) {
+            const filterResults = document.getElementById('filterResults');
+            
+            if (filteredData.length === 0) {
+                filterResults.innerHTML = `
+                    <p style="color: #FF3B30; text-align: center;">没有找到符合条件的消息</p>
+                `;
+                return;
+            }
+            
+            let resultHtml = `
+                <div style="margin-bottom: 10px; font-weight: bold; color: #FF9500;">
+                    筛选结果: 共找到 ${filteredData.length} 条消息
+                    <button onclick="exportFilteredData()" style="float: right; padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        💾 导出筛选结果
+                    </button>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px;">
+            `;
+            
+            filteredData.forEach((message, index) => {
+                const timestamp = new Date(message.timestamp).toLocaleString('zh-CN');
+                resultHtml += `
+                    <div style="margin-bottom: 8px; padding: 8px; background: ${index % 2 === 0 ? '#f8f9fa' : '#ffffff'}; border-radius: 4px; border-left: 2px solid #FF9500;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 3px;">
+                            <strong>${message.sender || '未知用户'}</strong> - ${timestamp}
+                        </div>
+                        <div style="font-size: 13px; line-height: 1.3;">${message.content || message.message || ''}</div>
+                    </div>
+                `;
+            });
+            
+            resultHtml += '</div>';
+            filterResults.innerHTML = resultHtml;
+            
+            // 存储筛选结果供导出使用
+            window.currentFilteredData = filteredData;
+        }
+
+        // 清除筛选
+        function clearFilters() {
+            document.getElementById('senderFilter').value = '';
+            document.getElementById('keywordFilter').value = '';
+            document.getElementById('startTimeFilter').value = '';
+            document.getElementById('endTimeFilter').value = '';
+            document.getElementById('filterResults').innerHTML = `
+                <p style="color: #666; text-align: center;">请设置筛选条件并点击"应用筛选"</p>
+            `;
+            window.currentFilteredData = null;
+        }
+
+        // 获取完整记录文本
+        function getFullRecordText() {
+            if (!currentChatData) return '';
+            
+            let text = `聊天记录完整导出\n文件: ${currentFilePath}\n导出时间: ${new Date().toLocaleString('zh-CN')}\n\n`;
+            text += '='.repeat(50) + '\n\n';
+            
+            currentChatData.forEach(message => {
+                const timestamp = new Date(message.timestamp).toLocaleString('zh-CN');
+                text += `[${timestamp}] ${message.sender || '未知用户'}: ${message.content || message.message || ''}\n\n`;
+            });
+            
+            return text;
+        }
+
+        // 导出筛选数据
+        function exportFilteredData() {
+            if (!window.currentFilteredData) {
+                alert('没有筛选数据可导出');
+                return;
+            }
+            
+            let text = `聊天记录筛选结果导出\n文件: ${currentFilePath}\n导出时间: ${new Date().toLocaleString('zh-CN')}\n`;
+            text += `筛选结果: ${window.currentFilteredData.length} 条消息\n\n`;
+            text += '='.repeat(50) + '\n\n';
+            
+            window.currentFilteredData.forEach(message => {
+                const timestamp = new Date(message.timestamp).toLocaleString('zh-CN');
+                text += `[${timestamp}] ${message.sender || '未知用户'}: ${message.content || message.message || ''}\n\n`;
+            });
+            
+            exportSummary(text, 'filtered_data');
+        }
+
+        // 导出功能
+        async function exportSummary(content, type) {
             try {
                 const response = await fetch('http://127.0.0.1:5000/api/export-summary', {
                     method: 'POST',
@@ -581,7 +978,8 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        summary: summary
+                        summary: content,
+                        export_path: null // 使用默认路径
                     })
                 });
                 
@@ -591,332 +989,45 @@
                 
                 const data = await response.json();
                 
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                alert(`摘要已导出到: ${data.file_path}`);
-                
-            } catch (error) {
-                console.error('导出失败:', error);
-                alert(`导出失败: ${error.message}`);
-            }
-        }
-        async function scanChats() {
-            document.getElementById('results').innerHTML = `
-                <h3>分析结果</h3>
-                <p style="color: #007AFF;">正在扫描聊天记录...</p>
-            `;
-            // TODO: 调用后端API扫描聊天记录
-        }
-        
-        function openSettings() {
-            addToHistory('settings');
-            showInitializationWizard();
-        }
-
-        // 显示聊天分析结果
-        function displayChatAnalysis(data, filePath) {
-            addToHistory('analysis');
-            
-            const { chat_data, contacts } = data;
-            const messageCount = chat_data.length;
-            const contactList = Array.from(contacts).join(', ');
-            
-            // 获取时间范围
-            let timeRange = '';
-            if (messageCount > 0) {
-                const firstMessage = new Date(chat_data[0].timestamp);
-                const lastMessage = new Date(chat_data[messageCount - 1].timestamp);
-                timeRange = `${firstMessage.toLocaleDateString()} - ${lastMessage.toLocaleDateString()}`;
-            }
-            
-            document.getElementById('results').innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">分析结果</h3>
-                    <button onclick="clearResults()" style="padding: 6px 12px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                        清除结果
-                    </button>
-                </div>
-                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <h4 style="margin: 0 0 10px 0; color: #34C759;">✅ 文件解析成功</h4>
-                    <p><strong>文件路径:</strong> ${filePath}</p>
-                    <p><strong>消息数量:</strong> ${messageCount} 条</p>
-                    <p><strong>参与人员:</strong> ${contactList}</p>
-                    <p><strong>时间范围:</strong> ${timeRange}</p>
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button onclick="generateSummary()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        生成AI摘要
-                    </button>
-                    <button onclick="showChatDetails()" style="padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        查看详细内容
-                    </button>
-                    <button onclick="filterChat()" style="padding: 8px 16px; background: #FF9500; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        筛选消息
-                    </button>
-                </div>
-                
-                <div id="detailsArea" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
-                    <p style="color: #666;">点击上方按钮查看更多详细信息或生成AI摘要</p>
-                </div>
-            `;
-            
-            // 保存数据到全局变量，供其他函数使用
-            window.currentChatData = chat_data;
-            window.currentContacts = contacts;
-            updateBackButton();
-        }
-        
-        // 清除分析结果，返回主界面
-        function clearResults() {
-            document.getElementById('results').innerHTML = `
-                <h3>分析结果</h3>
-                <p style="color: #666;">请选择上述功能开始使用 MemoChat</p>
-            `;
-            
-            // 清除全局数据
-            window.currentChatData = null;
-            window.currentContacts = null;
-            
-            // 移除分析页面的历史记录
-            if (pageHistory.length > 0 && pageHistory[pageHistory.length - 1].name === 'analysis') {
-                pageHistory.pop();
-                updateBackButton();
-            }
-        }
-
-        // 生成AI摘要
-        async function generateSummary() {
-            if (!window.currentChatData) {
-                alert('请先选择并分析聊天文件');
-                return;
-            }
-            
-            document.getElementById('detailsArea').innerHTML = `
-                <p style="color: #007AFF;">正在生成AI摘要，请稍候...</p>
-            `;
-            
-            try {
-                const response = await fetch('http://127.0.0.1:5000/api/generate-summary', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        chat_data: window.currentChatData
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                document.getElementById('detailsArea').innerHTML = `
-                    <h4 style="margin: 0 0 10px 0; color: #007AFF;">🤖 AI生成摘要</h4>
-                    <div style="background: white; padding: 15px; border-radius: 8px; white-space: pre-wrap;">${data.summary}</div>
-                    <button onclick="exportSummary('${data.summary}')" style="margin-top: 10px; padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        导出摘要
-                    </button>
-                `;
-                
-            } catch (error) {
-                console.error('生成摘要失败:', error);
-                document.getElementById('detailsArea').innerHTML = `
-                    <p style="color: #FF3B30;">生成摘要失败: ${error.message}</p>
-                    <p style="color: #666;">请检查API密钥配置或网络连接。</p>
-                `;
-            }
-        }
-        
-        // 显示聊天详细内容
-        function showChatDetails() {
-            if (!window.currentChatData) {
-                alert('请先选择并分析聊天文件');
-                return;
-            }
-            
-            const messages = window.currentChatData.slice(0, 50); // 只显示前50条消息
-            let html = `
-                <h4 style="margin: 0 0 10px 0; color: #34C759;">💬 聊天记录详情 (显示前50条)</h4>
-                <div style="background: white; padding: 15px; border-radius: 8px;">
-            `;
-            
-            messages.forEach(msg => {
-                const time = new Date(msg.timestamp).toLocaleString();
-                html += `
-                    <div style="margin-bottom: 10px; padding: 8px; border-left: 3px solid #007AFF; background: #f9f9f9;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 3px;">
-                            ${msg.sender} - ${time}
-                        </div>
-                        <div>${msg.content}</div>
-                    </div>
-                `;
-            });
-            
-            html += '</div>';
-            
-            if (window.currentChatData.length > 50) {
-                html += `<p style="color: #666; margin-top: 10px;">还有 ${window.currentChatData.length - 50} 条消息未显示</p>`;
-            }
-            
-            document.getElementById('detailsArea').innerHTML = html;
-        }
-        
-        // 筛选聊天记录
-        function filterChat() {
-            if (!window.currentChatData) {
-                alert('请先选择并分析聊天文件');
-                return;
-            }
-            
-            const contacts = Array.from(window.currentContacts);
-            let contactOptions = contacts.map(contact => `<option value="${contact}">${contact}</option>`).join('');
-            
-            document.getElementById('detailsArea').innerHTML = `
-                <h4 style="margin: 0 0 15px 0; color: #FF9500;">🔍 筛选聊天记录</h4>
-                <div style="background: white; padding: 15px; border-radius: 8px;">
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">按发送者筛选:</label>
-                        <select id="senderFilter" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">全部发送者</option>
-                            ${contactOptions}
-                        </select>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">开始时间:</label>
-                            <input type="datetime-local" id="startTime" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">结束时间:</label>
-                            <input type="datetime-local" id="endTime" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        </div>
-                    </div>
-                    
-                    <button onclick="applyFilter()" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        应用筛选
-                    </button>
-                </div>
-            `;
-        }
-        
-        // 应用筛选条件
-        async function applyFilter() {
-            const sender = document.getElementById('senderFilter').value;
-            const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
-            
-            try {
-                const response = await fetch('http://127.0.0.1:5000/api/filter-chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        chat_data: window.currentChatData,
-                        sender: sender || undefined,
-                        start_time: startTime || undefined,
-                        end_time: endTime || undefined
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                const filteredData = data.filtered_data;
-                let html = `
-                    <h4 style="margin: 0 0 10px 0; color: #FF9500;">🔍 筛选结果 (${filteredData.length} 条消息)</h4>
-                    <div style="background: white; padding: 15px; border-radius: 8px;">
-                `;
-                
-                if (filteredData.length === 0) {
-                    html += '<p style="color: #666;">没有找到符合条件的消息</p>';
+                if (data.success) {
+                    alert(`导出成功！\n文件保存至: ${data.file_path}`);
                 } else {
-                    filteredData.slice(0, 30).forEach(msg => {
-                        const time = new Date(msg.timestamp).toLocaleString();
-                        html += `
-                            <div style="margin-bottom: 10px; padding: 8px; border-left: 3px solid #FF9500; background: #f9f9f9;">
-                                <div style="font-size: 12px; color: #666; margin-bottom: 3px;">
-                                    ${msg.sender} - ${time}
-                                </div>
-                                <div>${msg.content}</div>
-                            </div>
-                        `;
-                    });
-                    
-                    if (filteredData.length > 30) {
-                        html += `<p style="color: #666; margin-top: 10px;">还有 ${filteredData.length - 30} 条消息未显示</p>`;
-                    }
+                    alert('导出失败');
                 }
-                
-                html += '</div>';
-                
-                document.getElementById('detailsArea').innerHTML = html;
-                
-            } catch (error) {
-                console.error('筛选失败:', error);
-                document.getElementById('detailsArea').innerHTML = `
-                    <p style="color: #FF3B30;">筛选失败: ${error.message}</p>
-                `;
-            }
-        }
-        
-        // 导出摘要
-        async function exportSummary(summary) {
-            try {
-                const response = await fetch('http://127.0.0.1:5000/api/export-summary', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        summary: summary
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                alert(`摘要已导出到: ${data.file_path}`);
                 
             } catch (error) {
                 console.error('导出失败:', error);
-                alert(`导出失败: ${error.message}`);
+                alert('导出失败: ' + error.message);
             }
         }
-        async function scanChats() {
-            document.getElementById('results').innerHTML = `
-                <h3>分析结果</h3>
-                <p style="color: #007AFF;">正在扫描聊天记录...</p>
-            `;
-            // TODO: 调用后端API扫描聊天记录
-        }
         
-        function openSettings() {
-            showInitializationWizard();
+        function displayScanResults(data) {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <h3>扫描结果</h3>
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #34C759;">
+                    <h4 style="margin: 0 0 10px 0; color: #34C759;">📊 扫描统计</h4>
+                    <p style="margin: 5px 0;"><strong>发现文件:</strong> ${data.files_found || 0} 个</p>
+                    <p style="margin: 5px 0;"><strong>总消息数:</strong> ${data.total_messages || 0}</p>
+                    <p style="margin: 5px 0;"><strong>扫描路径:</strong> ${data.scan_paths?.join(', ') || '无'}</p>
+                </div>
+                
+                ${data.summary ? `
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #007AFF;">
+                    <h4 style="margin: 0 0 10px 0; color: #007AFF;">📝 整体摘要</h4>
+                    <p style="line-height: 1.6; margin: 0;">${data.summary}</p>
+                </div>
+                ` : ''}
+                
+                ${data.files && data.files.length > 0 ? `
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9500;">
+                    <h4 style="margin: 0 0 10px 0; color: #FF9500;">📁 发现的文件</h4>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        ${data.files.map(file => `<li style="margin: 5px 0;">${file}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+            `;
         }
     </script>
 </body>
