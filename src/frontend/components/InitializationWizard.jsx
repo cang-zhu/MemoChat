@@ -20,11 +20,11 @@ const InitializationWizard = ({ onComplete }) => {
   });
 
   // 添加缺失的模型选择状态
-  const [selectedModel, setSelectedModel] = useState('qwen-turbo');
+  const [selectedModel, setSelectedModel] = useState('qwen-turbo-latest');
   const [availableModels, setAvailableModels] = useState([
-    { name: "qwen-turbo", displayName: "通义千问-Turbo (免费)", free: true, description: "快速响应，适合日常使用" },
-    { name: "qwen-plus", displayName: "通义千问-Plus (付费)", free: false, description: "更强性能，适合复杂任务" },
-    { name: "qwen-max", displayName: "通义千问-Max (付费)", free: false, description: "最强性能，适合专业场景" }
+    { name: "qwen-turbo-latest", displayName: "通义千问-Turbo (免费)", free: true, description: "快速响应，适合日常使用" },
+    { name: "qwen-plus-latest", displayName: "通义千问-Plus (付费)", free: false, description: "更强性能，适合复杂任务" },
+    { name: "qwen-max-latest", displayName: "通义千问-Max (付费)", free: false, description: "最强性能，适合专业场景" }
   ]);
 
   const steps = [
@@ -353,7 +353,7 @@ const InitializationWizard = ({ onComplete }) => {
                     ))}
                   </div>
                   <small className="help-text">
-                    推荐选择 <strong>qwen-turbo</strong> 模型，免费且性能优秀
+                    推荐选择 <strong>qwen-turbo-latest</strong> 模型，免费且性能优秀
                   </small>
                 </div>
               </div>

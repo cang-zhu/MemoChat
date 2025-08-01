@@ -13,6 +13,19 @@ secrets.json
 *.pem
 *.p12
 
+# ===== 测试文件和临时文件 =====
+# 测试目录（包含敏感的API测试）
+src/backend/tests/
+tests/
+test_results/
+*.test.log
+test_output/
+
+# 临时测试文件
+temp_*
+tmp_*
+*.tmp
+
 # ===== Python虚拟环境 =====
 venv/
 env/

@@ -21,6 +21,10 @@ class ChatParser:
     
     def parse_wechat(self):
         """解析微信聊天记录格式"""
+        # 重置数据
+        self.messages = []
+        self.contacts = set()
+        
         # 微信聊天记录通常格式: [2023/1/1 12:00:00] 张三: 消息内容
         pattern = r'\[(\d{4}/\d{1,2}/\d{1,2}\s+\d{1,2}:\d{1,2}:\d{1,2})\]\s+([^:]+):\s+(.+)'
         matches = re.findall(pattern, self.raw_text, re.MULTILINE)
@@ -47,6 +51,10 @@ class ChatParser:
     
     def parse_qq(self):
         """解析QQ聊天记录格式"""
+        # 重置数据
+        self.messages = []
+        self.contacts = set()
+        
         # QQ聊天记录通常格式: 2023-01-01 12:00:00 张三: 消息内容
         pattern = r'(\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}:\d{1,2}:\d{1,2})\s+([^:]+):\s+(.+)'
         matches = re.findall(pattern, self.raw_text, re.MULTILINE)
@@ -69,6 +77,10 @@ class ChatParser:
     
     def auto_detect_and_parse(self):
         """自动检测聊天记录类型并解析"""
+        # 重置数据
+        self.messages = []
+        self.contacts = set()
+        
         # 简单检测：如果包含[yyyy/mm/dd]格式，可能是微信记录
         if re.search(r'\[\d{4}/\d{1,2}/\d{1,2}', self.raw_text):
             return self.parse_wechat()

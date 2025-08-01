@@ -3,16 +3,20 @@ import os
 import pandas as pd
 from datetime import datetime
 import json
+from flask_cors import CORS
 from dotenv import load_dotenv
+
+# 加载环境变量，指定正确的.env文件路径
+env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+load_dotenv(env_path)
+
 from parser import ChatParser
 from ai_engine import QwenAI
 from chat_extractor_manager import ChatExtractorManager
 from privacy_manager import PrivacyManager
 
-# 加载环境变量
-load_dotenv()
-
 app = Flask(__name__)
+CORS(app)  # 启用CORS支持
 
 # 从环境变量获取API密钥
 api_key = os.getenv('QWEN_API_KEY')
@@ -22,29 +26,62 @@ ai_engine = QwenAI(api_key=api_key)
 extractor_manager = ChatExtractorManager()
 privacy_manager = PrivacyManager()
 
+@app.route('/')
+def index():
+    return jsonify({'status': 'MemoChat Backend Server is running', 'version': '1.0'})
+
 @app.route('/api/load-chat', methods=['POST'])
 def load_chat():
-    data = request.json
-    file_path = data.get('file_path')
-    
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
-    
-    parser = ChatParser(file_path=file_path)
-    chat_df = parser.auto_detect_and_parse()
-    
-    # 获取联系人列表
-    contacts = parser.get_contacts()
-    
-    # 转换为JSON格式返回
-    chat_data = chat_df.to_dict('records')
-    for item in chat_data:
-        item['timestamp'] = item['timestamp'].isoformat()
-    
-    return jsonify({
-        'chat_data': chat_data,
-        'contacts': contacts
-    })
+    try:
+        data = request.json
+        file_path = data.get('file_path')
+        
+        print(f"[DEBUG] 接收到文件路径: {file_path}")
+        
+        if not file_path or not os.path.exists(file_path):
+            print(f"[ERROR] 文件不存在: {file_path}")
+            return jsonify({'error': 'File not found'}), 404
+        
+        print(f"[DEBUG] 开始解析文件...")
+        parser = ChatParser(file_path=file_path)
+        
+        # 添加调试信息
+        print(f"[DEBUG] 文件内容长度: {len(parser.raw_text)}")
+        print(f"[DEBUG] 文件前100字符: {repr(parser.raw_text[:100])}")
+        
+        chat_df = parser.auto_detect_and_parse()
+        
+        print(f"[DEBUG] 解析结果: {len(chat_df)} 条消息")
+        print(f"[DEBUG] 联系人数量: {len(parser.contacts)}")
+        
+        # 检查是否成功解析到消息
+        if chat_df.empty:
+            print(f"[ERROR] 解析结果为空")
+            return jsonify({'error': '无法解析聊天文件，请检查文件格式是否正确'}), 400
+        
+        # 获取联系人列表
+        contacts = parser.get_contacts()
+        
+        # 转换为JSON格式返回
+        chat_data = chat_df.to_dict('records')
+        for item in chat_data:
+            item['timestamp'] = item['timestamp'].isoformat()
+        
+        print(f"[DEBUG] 成功返回 {len(chat_data)} 条消息")
+        
+        return jsonify({
+            'chat_data': chat_data,
+            'contacts': contacts
+        })
+        
+    except UnicodeDecodeError as e:
+        print(f"[ERROR] 编码错误: {e}")
+        return jsonify({'error': '文件编码错误，请确保文件是UTF-8编码'}), 400
+    except Exception as e:
+        print(f"[ERROR] 解析异常: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'解析文件时出错: {str(e)}'}), 500
 
 @app.route('/api/filter-chat', methods=['POST'])
 def filter_chat():
@@ -210,6 +247,6 @@ def extract_chat_unified():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000)
+    port = int(os.getenv('FLASK_PORT', 6000))  # 从环境变量读取端口，默认6000
+    app.run(host='127.0.0.1', port=port)

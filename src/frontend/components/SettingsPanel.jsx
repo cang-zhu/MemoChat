@@ -4,7 +4,7 @@ import './SettingsPanel.css';
 
 const SettingsPanel = () => {
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('qwen-turbo');
+  const [selectedModel, setSelectedModel] = useState('qwen-turbo-latest');
   const [availableModels, setAvailableModels] = useState([]);
   const [wechatPath, setWechatPath] = useState({ windows: '', mac: '' });
   const [qqPath, setQQPath] = useState({ windows: '', mac: '' });
@@ -24,13 +24,13 @@ const SettingsPanel = () => {
         console.log('Loaded config:', config); // 调试日志
         
         setApiKey(config.api?.key || '');
-        setSelectedModel(config.api?.model || 'qwen-turbo');
+        setSelectedModel(config.api?.model || 'qwen-turbo-latest');
         
         // 确保 availableModels 有默认值
         const models = config.api?.availableModels || [
-          { name: "qwen-turbo", displayName: "通义千问-Turbo (免费)", free: true },
-          { name: "qwen-plus", displayName: "通义千问-Plus (付费)", free: false },
-          { name: "qwen-max", displayName: "通义千问-Max (付费)", free: false }
+          { name: "qwen-turbo-latest", displayName: "通义千问-Turbo (免费)", free: true },
+          { name: "qwen-plus-latest", displayName: "通义千问-Plus (付费)", free: false },
+          { name: "qwen-max-latest", displayName: "通义千问-Max (付费)", free: false }
         ];
         setAvailableModels(models);
         
@@ -45,9 +45,9 @@ const SettingsPanel = () => {
         
         // 设置默认值
         setAvailableModels([
-          { name: "qwen-turbo", displayName: "通义千问-Turbo (免费)", free: true },
-          { name: "qwen-plus", displayName: "通义千问-Plus (付费)", free: false },
-          { name: "qwen-max", displayName: "通义千问-Max (付费)", free: false }
+          { name: "qwen-turbo-latest", displayName: "通义千问-Turbo (免费)", free: true },
+          { name: "qwen-plus-latest", displayName: "通义千问-Plus (付费)", free: false },
+          { name: "qwen-max-latest", displayName: "通义千问-Max (付费)", free: false }
         ]);
       } finally {
         setIsLoading(false);

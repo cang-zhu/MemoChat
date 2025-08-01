@@ -15,7 +15,9 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      enableRemoteModule: true
+      enableRemoteModule: true,
+      webSecurity: false,  // 允许跨域请求
+      allowRunningInsecureContent: true  // 允许不安全内容
     }
   });
 
@@ -95,7 +97,7 @@ function updateEnvFile(userConfig) {
   const envContent = `# API配置
 QWEN_API_KEY=${userConfig.api.key || ''}
 QWEN_API_URL=${userConfig.api.url || 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'}
-QWEN_MODEL=${userConfig.api.model || 'qwen-turbo'}
+QWEN_MODEL=${userConfig.api.model || 'qwen-turbo-latest'}
 
 # 聊天记录路径配置
 WECHAT_PATH_WINDOWS=${userConfig.chatRecords.wechat?.windows || 'C:\\Users\\%USERNAME%\\Documents\\WeChat Files'}
@@ -107,6 +109,9 @@ QQ_PATH_MAC=${userConfig.chatRecords.qq?.mac || ''}
 DEFAULT_EXPORT_PATH=${userConfig.app.defaultExportPath || ''}
 LANGUAGE=${userConfig.app.language || 'zh-CN'}
 THEME=${userConfig.app.theme || 'light'}
+
+# 服务器配置
+FLASK_PORT=6000
 `;
 
   fs.writeFileSync(envPath, envContent);
@@ -294,5 +299,39 @@ ipcMain.handle('save-model-config', async (event, model) => {
   } catch (error) {
     console.error('保存模型配置失败:', error);
     return { success: false, error: error.message };
+  }
+});
+
+// 添加API代理处理程序
+ipcMain.handle('api-call', async (event, { endpoint, method = 'GET', data = null }) => {
+  const fetch = require('node-fetch');
+  
+  try {
+    const url = `http://127.0.0.1:6000${endpoint}`;
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    };
+    
+    if (data && method !== 'GET') {
+      options.body = JSON.stringify(data);
+    }
+    
+    const response = await fetch(url, options);
+    const responseData = await response.json();
+    
+    return {
+      ok: response.ok,
+      status: response.status,
+      data: responseData
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      error: error.message
+    };
   }
 });

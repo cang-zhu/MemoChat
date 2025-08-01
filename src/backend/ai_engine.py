@@ -3,8 +3,9 @@ import json
 import os
 from dotenv import load_dotenv
 
-# 加载环境变量
-load_dotenv()
+# 加载环境变量 - 修复路径指向项目根目录
+env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+load_dotenv(env_path)
 
 class QwenAI:
     def __init__(self, api_key=None, model=None):
@@ -21,7 +22,7 @@ class QwenAI:
         
         self.api_key = api_key
         self.api_url = os.getenv('QWEN_API_URL') or "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
-        self.model = model or os.getenv('QWEN_MODEL') or "qwen-turbo"  # 支持传入模型参数
+        self.model = model or os.getenv('QWEN_MODEL') or "qwen-turbo-latest"  # 支持传入模型参数
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
