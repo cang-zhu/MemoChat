@@ -4,7 +4,7 @@
 <div align="center">
 
 ![MemoChat Logo](https://img.shields.io/badge/MemoChat-AI%20Chat%20Summary-blue?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-0.2.0-green?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.3.0-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-orange?style=for-the-badge)
 
 **基于通义千问 API 的智能聊天摘要应用，专为微信 / QQ 聊天记录设计**
@@ -347,6 +347,29 @@ MemoChat/
   }
 }
 ```
+---
+
+## 🧯 故障排除
+
+### 常见问题
+
+#### 1. API密钥无效
+
+- 确认密钥是否正确粘贴
+- 检查 DashScope 服务是否已开通
+- 检查是否有剩余额度
+
+#### 2. 找不到聊天记录
+
+- 检查聊天软件是否已安装
+- 检查路径配置是否正确
+- 尝试手动设置路径
+
+#### 3. 应用无法启动
+
+- 检查是否安装所有依赖
+- 检查虚拟环境是否正确激活
+- 查看终端中是否有错误日志提示
 
 ---
 
