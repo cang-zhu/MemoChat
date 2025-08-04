@@ -30,6 +30,11 @@ privacy_manager = PrivacyManager()
 def index():
     return jsonify({'status': 'MemoChat Backend Server is running', 'version': '1.0'})
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """健康检查端点"""
+    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
 @app.route('/api/load-chat', methods=['POST'])
 def load_chat():
     try:
@@ -247,6 +252,73 @@ def extract_chat_unified():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scan-directory', methods=['POST'])
+def scan_directory():
+    """扫描指定目录下的聊天文件"""
+    try:
+        data = request.json
+        directory_path = data.get('directory_path')
+        
+        if not directory_path:
+            return jsonify({'error': '未提供目录路径'}), 400
+        
+        if not os.path.exists(directory_path):
+            return jsonify({'error': f'目录不存在: {directory_path}'}), 404
+        
+        if not os.path.isdir(directory_path):
+            return jsonify({'error': f'路径不是目录: {directory_path}'}), 400
+        
+        # 扫描目录下的文件
+        files = []
+        supported_extensions = ['.txt', '.csv', '.json', '.log']
+        
+        try:
+            for root, dirs, filenames in os.walk(directory_path):
+                for filename in filenames:
+                    file_path = os.path.join(root, filename)
+                    file_ext = os.path.splitext(filename)[1].lower()
+                    
+                    # 只包含支持的文件类型
+                    if file_ext in supported_extensions:
+                        try:
+                            stat = os.stat(file_path)
+                            files.append({
+                                'name': filename,
+                                'path': file_path,
+                                'size': stat.st_size,
+                                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                                'extension': file_ext
+                            })
+                        except (OSError, PermissionError) as e:
+                            print(f"[WARNING] 无法访问文件 {file_path}: {e}")
+                            continue
+        
+        except PermissionError:
+            return jsonify({'error': f'无权限访问目录: {directory_path}'}), 403
+        except Exception as e:
+            return jsonify({'error': f'扫描目录时出错: {str(e)}'}), 500
+        
+        # 按修改时间排序（最新的在前）
+        files.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return jsonify({
+            'ok': True,
+            'status': 200,
+            'data': {
+                'directory': directory_path,
+                'files': files,
+                'file_count': len(files),
+                'scan_time': datetime.now().isoformat()
+            }
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] 扫描目录异常: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'扫描目录时出错: {str(e)}'}), 500
+
 if __name__ == '__main__':
     port = int(os.getenv('FLASK_PORT', 6000))  # 从环境变量读取端口，默认6000
     app.run(host='127.0.0.1', port=port)

@@ -28,6 +28,8 @@ function createWindow() {
   } else {
     // 在生产环境中加载打包后的HTML文件
     mainWindow.loadFile(path.join(__dirname, 'frontend/index.html'));
+    // 临时添加：在生产环境中也打开开发者工具进行调试
+    mainWindow.webContents.openDevTools();
   }
 
   // 发送初始化状态到渲染进程（延迟发送，确保页面已加载）
@@ -63,8 +65,28 @@ function startPythonBackend() {
   // 确保.env文件存在并更新配置
   updateEnvFile(userConfig);
   
-  // 根据操作系统选择合适的Python命令
-  const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+  // 智能选择Python命令
+  let pythonCommand = 'python3';
+  
+  // 检查是否存在虚拟环境
+  const venvPath = path.join(__dirname, '..', 'venv');
+  if (fs.existsSync(venvPath)) {
+    // 使用虚拟环境中的Python
+    if (process.platform === 'win32') {
+      pythonCommand = path.join(venvPath, 'Scripts', 'python.exe');
+    } else {
+      pythonCommand = path.join(venvPath, 'bin', 'python');
+    }
+    console.log('🐍 使用虚拟环境Python:', pythonCommand);
+  } else {
+    // 使用系统Python
+    pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+    console.log('🐍 使用系统Python:', pythonCommand);
+  }
+  
+  console.log('🚀 启动Python后端服务...');
+  console.log('📁 Python路径:', pythonPath);
+  console.log('📄 脚本路径:', scriptPath);
   
   // 启动Python后端
   pythonProcess = spawn(pythonCommand, [scriptPath], {
@@ -73,20 +95,53 @@ function startPythonBackend() {
   });
   
   pythonProcess.stdout.on('data', (data) => {
-    console.log(`Python stdout: ${data}`);
+    const output = data.toString();
+    console.log(`✅ Python stdout: ${output}`);
+    
+    // 检查服务是否成功启动
+    if (output.includes('Running on') || output.includes('* Serving Flask app')) {
+      console.log('🎉 Python后端服务启动成功！');
+    }
   });
   
   pythonProcess.stderr.on('data', (data) => {
-    console.error(`Python stderr: ${data}`);
+    const error = data.toString();
+    
+    // 区分真正的错误和正常的Flask输出
+    if (error.includes('Running on') || 
+        error.includes('Press CTRL+C to quit') ||
+        error.includes('WARNING: This is a development server') ||
+        error.includes('HTTP/1.1" 200') ||
+        error.includes('HTTP/1.1" 201') ||
+        error.includes('HTTP/1.1" 204')) {
+      // 这些是正常的Flask输出，不是错误
+      console.log(`📋 Python info: ${error.trim()}`);
+      
+      // 检查服务是否成功启动
+      if (error.includes('Running on')) {
+        console.log('🎉 Python后端服务启动成功！');
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('backend-status', { status: 'running' });
+        }
+      }
+    } else {
+      // 真正的错误
+      console.error(`❌ Python stderr: ${error}`);
+      
+      // 检查常见错误
+      if (error.includes('ModuleNotFoundError') || error.includes('ImportError')) {
+        console.error('🔧 检测到Python依赖缺失，请运行: pip3 install -r requirements.txt');
+        showDependencyError();
+      }
+    }
   });
   
   pythonProcess.on('close', (code) => {
-    console.log(`Python process exited with code ${code}`);
+    console.log(`⚠️ Python进程退出，退出码: ${code}`);
   });
   
   pythonProcess.on('error', (error) => {
-    console.error(`Failed to start Python process: ${error.message}`);
-    // 可以在这里添加错误处理逻辑，比如显示用户友好的错误信息
+    console.error(`💥 启动Python进程失败: ${error.message}`);
   });
 }
 

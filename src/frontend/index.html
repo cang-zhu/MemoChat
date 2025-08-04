@@ -137,14 +137,19 @@
         // Markdown和LaTeX渲染器类
         class ContentRenderer {
             constructor() {
+                console.log('ContentRenderer: 构造函数被调用');
                 // 延迟初始化marked，确保库已加载
                 this.markedReady = false;
                 this.initMarked();
             }
             
             initMarked() {
+                console.log('ContentRenderer: initMarked被调用');
+                console.log('ContentRenderer: typeof marked =', typeof marked);
+                
                 // 检查marked是否已加载
                 if (typeof marked !== 'undefined') {
+                    console.log('ContentRenderer: marked库已加载，开始配置');
                     this.marked = marked;
                     // 配置marked选项
                     this.marked.setOptions({
@@ -154,7 +159,9 @@
                         sanitize: false
                     });
                     this.markedReady = true;
+                    console.log('ContentRenderer: marked配置完成，markedReady =', this.markedReady);
                 } else {
+                    console.log('ContentRenderer: marked库未加载，100ms后重试');
                     // 如果还没加载，等待一段时间后重试
                     setTimeout(() => this.initMarked(), 100);
                 }
@@ -166,18 +173,30 @@
              * @returns {string} 渲染后的HTML字符串
              */
             renderContent(rawContent) {
-                if (!rawContent) return '';
+                console.log('ContentRenderer: renderContent被调用');
+                console.log('ContentRenderer: rawContent长度 =', rawContent ? rawContent.length : 0);
+                console.log('ContentRenderer: markedReady =', this.markedReady);
+                
+                if (!rawContent) {
+                    console.log('ContentRenderer: 内容为空，返回空字符串');
+                    return '';
+                }
                 
                 // 如果marked还没准备好，返回原始内容
                 if (!this.markedReady) {
+                    console.log('ContentRenderer: marked未准备好，返回转义后的原始内容');
                     return this.escapeHtml(rawContent);
                 }
                 
+                console.log('ContentRenderer: 开始预处理LaTeX公式');
                 // 预处理LaTeX公式
                 let processedContent = this.preprocessLatex(rawContent);
+                console.log('ContentRenderer: LaTeX预处理完成');
                 
+                console.log('ContentRenderer: 开始Markdown转HTML');
                 // Markdown转HTML
                 let html = this.marked.parse(processedContent);
+                console.log('ContentRenderer: Markdown转HTML完成，HTML长度 =', html.length);
                 
                 return html;
             }
@@ -240,15 +259,26 @@
              * @param {HTMLElement} targetElement - 目标DOM元素
              */
             renderToElement(rawContent, targetElement) {
+                console.log('ContentRenderer: renderToElement被调用');
+                console.log('ContentRenderer: targetElement =', targetElement);
+                
                 const html = this.renderContent(rawContent);
+                console.log('ContentRenderer: 获得HTML内容，长度 =', html.length);
+                
                 targetElement.innerHTML = html;
                 targetElement.classList.add('rendered-content');
+                console.log('ContentRenderer: HTML已设置到目标元素');
                 
                 // 刷新MathJax渲染
                 if (window.MathJax && window.MathJax.typesetPromise) {
-                    window.MathJax.typesetPromise([targetElement]).catch((err) => {
-                        console.warn('MathJax渲染错误:', err);
+                    console.log('ContentRenderer: 开始MathJax渲染');
+                    window.MathJax.typesetPromise([targetElement]).then(() => {
+                        console.log('ContentRenderer: MathJax渲染完成');
+                    }).catch((err) => {
+                        console.warn('ContentRenderer: MathJax渲染错误:', err);
                     });
+                } else {
+                    console.log('ContentRenderer: MathJax不可用');
                 }
             }
         }
@@ -442,18 +472,18 @@
                         <h2>功能区域</h2>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
                             <div style="padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                                <h3>📁 文件上传</h3>
-                                <p>上传聊天记录文件进行分析</p>
+                                <h3>📁 手动上传</h3>
+                                <p>手动选择聊天记录文件分析</p>
                                 <button onclick="uploadFile()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer;">
                                     选择文件
                                 </button>
                             </div>
                             
                             <div style="padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                                <h3>🔍 路径扫描</h3>
-                                <p>自动扫描本地聊天记录</p>
-                                <button onclick="scanChats()" style="padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                    开始扫描
+                                <h3>🔄 刷新文件</h3>
+                                <p>重新扫描配置路径下的文件</p>
+                                <button onclick="refreshChatFiles()" style="padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    刷新列表
                                 </button>
                             </div>
                             
@@ -475,13 +505,444 @@
                         </div>
                         
                         <div id="results" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; min-height: 200px;">
-                            <h3>分析结果</h3>
-                            <p style="color: #666;">请选择上述功能开始使用 MemoChat</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 style="margin: 0;">聊天文件列表</h3>
+                                <div style="display: flex; gap: 10px;">
+                                    <button id="chatTypeAll" onclick="switchChatType('all')" style="
+                                        padding: 8px 16px; 
+                                        background: #007AFF; 
+                                        color: white; 
+                                        border: none; 
+                                        border-radius: 4px; 
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    ">
+                                        📂 全部
+                                    </button>
+                                    <button id="chatTypeWechat" onclick="switchChatType('wechat')" style="
+                                        padding: 8px 16px; 
+                                        background: #f8f9fa; 
+                                        color: #333; 
+                                        border: 1px solid #ddd; 
+                                        border-radius: 4px; 
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    ">
+                                        💬 微信
+                                    </button>
+                                    <button id="chatTypeQQ" onclick="switchChatType('qq')" style="
+                                        padding: 8px 16px; 
+                                        background: #f8f9fa; 
+                                        color: #333; 
+                                        border: 1px solid #ddd; 
+                                        border-radius: 4px; 
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    ">
+                                        🐧 QQ
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="chatFilesList">
+                                <p style="color: #007AFF;">正在检查后端连接...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
             updateBackButton();
+            
+            // 等待后端启动后再加载聊天文件列表
+            waitForBackendAndLoadFiles();
+        }
+
+        // 等待后端启动并加载文件
+        async function waitForBackendAndLoadFiles() {
+            const chatFilesList = document.getElementById('chatFilesList');
+            let retryCount = 0;
+            const maxRetries = 15; // 增加重试次数到15次
+            const retryDelay = 2000; // 增加延迟到2秒
+            
+            while (retryCount < maxRetries) {
+                try {
+                    console.log(`尝试连接后端 (${retryCount + 1}/${maxRetries})...`);
+                    chatFilesList.innerHTML = `<p style="color: #007AFF; text-align: center; padding: 20px;">正在等待后端服务启动... (${retryCount + 1}/${maxRetries})</p>`;
+                    
+                    // 尝试连接后端健康检查端点
+                    const testResult = await ipcRenderer.invoke('api-call', {
+                        endpoint: '/api/health',
+                        method: 'GET'
+                    });
+                    
+                    console.log('健康检查结果:', testResult);
+                    
+                    // 检查响应是否成功且包含健康状态
+                    if (testResult.ok && testResult.data && testResult.data.status === 'healthy') {
+                        console.log('后端连接成功，开始加载文件列表');
+                        chatFilesList.innerHTML = '<p style="color: #007AFF; text-align: center; padding: 20px;">后端连接成功，正在加载文件列表...</p>';
+                        await loadChatFilesList();
+                        return;
+                    } else {
+                        console.log('健康检查失败:', testResult);
+                    }
+                } catch (error) {
+                    console.log(`连接尝试 ${retryCount + 1} 失败:`, error.message);
+                }
+                
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                }
+            }
+            
+            // 所有重试都失败了
+            console.error('无法连接到后端服务');
+            chatFilesList.innerHTML = `
+                <div style="text-align: center; color: #FF3B30; padding: 20px;">
+                    <p>❌ 无法连接到后端服务</p>
+                    <p style="font-size: 14px; color: #666;">已尝试 ${maxRetries} 次连接，请检查后端服务是否正常运行</p>
+                    <div style="margin-top: 15px;">
+                        <button onclick="waitForBackendAndLoadFiles()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                            重新连接
+                        </button>
+                        <button onclick="testBackendConnection()" style="padding: 8px 16px; background: #6C757D; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            测试连接
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 当前选择的聊天类型
+        let currentChatType = 'all';
+        let allChatFiles = [];
+
+        // 切换聊天类型
+        function switchChatType(type) {
+            currentChatType = type;
+            
+            // 更新按钮样式
+            const buttons = ['chatTypeAll', 'chatTypeWechat', 'chatTypeQQ'];
+            buttons.forEach(buttonId => {
+                const button = document.getElementById(buttonId);
+                if (buttonId === `chatType${type.charAt(0).toUpperCase() + type.slice(1)}` || 
+                    (type === 'all' && buttonId === 'chatTypeAll')) {
+                    button.style.background = '#007AFF';
+                    button.style.color = 'white';
+                    button.style.border = 'none';
+                } else {
+                    button.style.background = '#f8f9fa';
+                    button.style.color = '#333';
+                    button.style.border = '1px solid #ddd';
+                }
+            });
+            
+            // 过滤并显示文件
+            displayFilteredChatFiles();
+        }
+
+        // 加载聊天文件列表
+        async function loadChatFilesList() {
+            const chatFilesList = document.getElementById('chatFilesList');
+            
+            // 显示加载状态
+            chatFilesList.innerHTML = '<p style="color: #007AFF; text-align: center; padding: 20px;">正在加载文件列表...</p>';
+            
+            try {
+                // 获取配置中的路径
+                const config = await ipcRenderer.invoke('get-config');
+                console.log('=== 调试信息 ===');
+                console.log('Config loaded:', JSON.stringify(config, null, 2));
+                
+                // 检查是否有配置的路径
+                const chatRecords = config.chatRecords || {};
+                console.log('Chat records:', JSON.stringify(chatRecords, null, 2));
+                
+                const pathsToScan = [];
+                
+                // 收集所有配置的路径，并标记类型
+                if (chatRecords.wechat?.windows) {
+                    console.log('Adding WeChat Windows path:', chatRecords.wechat.windows);
+                    pathsToScan.push({ path: chatRecords.wechat.windows, type: 'wechat' });
+                }
+                if (chatRecords.wechat?.mac) {
+                    console.log('Adding WeChat Mac path:', chatRecords.wechat.mac);
+                    pathsToScan.push({ path: chatRecords.wechat.mac, type: 'wechat' });
+                }
+                if (chatRecords.qq?.windows) {
+                    console.log('Adding QQ Windows path:', chatRecords.qq.windows);
+                    pathsToScan.push({ path: chatRecords.qq.windows, type: 'qq' });
+                }
+                if (chatRecords.qq?.mac) {
+                    console.log('Adding QQ Mac path:', chatRecords.qq.mac);
+                    pathsToScan.push({ path: chatRecords.qq.mac, type: 'qq' });
+                }
+                
+                // 如果没有配置路径，使用默认的test_data路径
+                if (pathsToScan.length === 0) {
+                    console.log('No configured paths found, using default test_data path');
+                    pathsToScan.push({ 
+                        path: '/Users/huaisang/Documents/研究生/MemoChat/MemoChat_app/test_data', 
+                        type: 'general' 
+                    });
+                }
+                
+                console.log('Paths to scan:', JSON.stringify(pathsToScan, null, 2));
+                
+                // 扫描所有路径下的文件
+                allChatFiles = [];
+                for (const pathInfo of pathsToScan) {
+                    console.log(`=== 扫描路径: ${pathInfo.path} ===`);
+                    try {
+                        const result = await ipcRenderer.invoke('api-call', {
+                            endpoint: '/api/scan-directory',
+                            method: 'POST',
+                            data: { directory_path: pathInfo.path }
+                        });
+                        
+                        console.log(`完整的API响应:`, JSON.stringify(result, null, 2));
+                        
+                        // 修复数据结构检查 - 后端数据被IPC包装了一层
+                        const apiData = result.data; // IPC包装的响应
+                        if (result.ok && apiData && apiData.ok && apiData.data && apiData.data.files) {
+                            console.log(`在 ${pathInfo.path} 中找到 ${apiData.data.files.length} 个文件`);
+                            console.log('文件列表:', apiData.data.files);
+                            
+                            const newFiles = apiData.data.files.map(file => ({
+                                ...file,
+                                sourcePath: pathInfo.path,
+                                chatType: pathInfo.type,
+                                // 根据文件名智能判断聊天类型
+                                detectedType: detectChatTypeFromFileName(file.name, pathInfo.type)
+                            }));
+                            
+                            console.log('处理后的文件:', newFiles);
+                            allChatFiles = allChatFiles.concat(newFiles);
+                        } else {
+                            console.warn(`在 ${pathInfo.path} 中没有找到文件或出现错误:`, result);
+                            if (apiData && apiData.error) {
+                                console.error(`扫描 ${pathInfo.path} 时出错:`, apiData.error);
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`扫描路径 ${pathInfo.path} 失败:`, error);
+                    }
+                }
+                
+                console.log('=== 最终结果 ===');
+                console.log('总共找到的文件数量:', allChatFiles.length);
+                console.log('所有聊天文件:', JSON.stringify(allChatFiles, null, 2));
+                
+                // 显示过滤后的文件列表
+                displayFilteredChatFiles();
+                
+            } catch (error) {
+                console.error('加载聊天文件失败:', error);
+                chatFilesList.innerHTML = `
+                    <div style="text-align: center; color: #FF3B30; padding: 20px;">
+                        <p>❌ 加载文件列表失败</p>
+                        <p style="font-size: 14px; color: #666;">${error.message}</p>
+                        <p style="font-size: 12px; color: #999;">请检查后端服务是否正常运行</p>
+                        <button onclick="loadChatFilesList()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+                            重试
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 根据文件名智能判断聊天类型
+        function detectChatTypeFromFileName(fileName, defaultType) {
+            const lowerName = fileName.toLowerCase();
+            
+            // 微信相关关键词
+            if (lowerName.includes('微信') || lowerName.includes('wechat') || lowerName.includes('wx')) {
+                return 'wechat';
+            }
+            
+            // QQ相关关键词
+            if (lowerName.includes('qq') || lowerName.includes('群聊') || lowerName.includes('腾讯')) {
+                return 'qq';
+            }
+            
+            return defaultType;
+        }
+
+        // 显示过滤后的聊天文件
+        function displayFilteredChatFiles() {
+            const chatFilesList = document.getElementById('chatFilesList');
+            
+            // 根据当前选择的类型过滤文件
+            let filteredFiles = allChatFiles;
+            if (currentChatType !== 'all') {
+                filteredFiles = allChatFiles.filter(file => 
+                    file.detectedType === currentChatType || file.chatType === currentChatType
+                );
+            }
+            
+            if (!filteredFiles || filteredFiles.length === 0) {
+                const typeNames = {
+                    'all': '全部',
+                    'wechat': '微信',
+                    'qq': 'QQ'
+                };
+                
+                chatFilesList.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        <p>📂 未找到${typeNames[currentChatType]}聊天文件</p>
+                        <p style="font-size: 14px;">请检查设置中的路径配置，或使用手动上传功能</p>
+                        <button onclick="openSettings()" style="padding: 8px 16px; background: #FF9500; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+                            配置路径
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按源路径分组文件
+            const filesByPath = {};
+            filteredFiles.forEach(file => {
+                const path = file.sourcePath || '未知路径';
+                if (!filesByPath[path]) {
+                    filesByPath[path] = [];
+                }
+                filesByPath[path].push(file);
+            });
+            
+            let filesHtml = '';
+            
+            Object.keys(filesByPath).forEach(path => {
+                const pathFiles = filesByPath[path];
+                
+                // 获取路径类型标识
+                const pathType = pathFiles[0]?.chatType || 'general';
+                const typeIcons = {
+                    'wechat': '💬',
+                    'qq': '🐧',
+                    'general': '📁'
+                };
+                const typeNames = {
+                    'wechat': '微信',
+                    'qq': 'QQ',
+                    'general': '通用'
+                };
+                
+                filesHtml += `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #495057; margin-bottom: 10px; font-size: 16px;">
+                            ${typeIcons[pathType]} ${typeNames[pathType]} - ${path}
+                            <span style="font-size: 12px; color: #666; font-weight: normal;">(${pathFiles.length} 个文件)</span>
+                        </h4>
+                        <div style="display: grid; gap: 10px;">
+                `;
+                
+                pathFiles.forEach(file => {
+                    const fileSize = file.size ? formatFileSize(file.size) : '未知大小';
+                    const modifiedTime = file.modified ? new Date(file.modified).toLocaleString('zh-CN') : '未知时间';
+                    
+                    // 文件类型标识
+                    const fileTypeIcon = file.detectedType === 'wechat' ? '💬' : 
+                                        file.detectedType === 'qq' ? '🐧' : '📄';
+                    
+                    filesHtml += `
+                        <div onclick="loadChatFile('${file.path}')" style="
+                            padding: 15px; 
+                            border: 1px solid #e9ecef; 
+                            border-radius: 6px; 
+                            cursor: pointer; 
+                            transition: all 0.2s;
+                            background: white;
+                        " onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#007AFF'" 
+                           onmouseout="this.style.background='white'; this.style.borderColor='#e9ecef'">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="color: #333; font-size: 14px;">
+                                        ${fileTypeIcon} ${file.name}
+                                    </strong>
+                                    <div style="font-size: 12px; color: #666; margin-top: 2px;">
+                                        ${fileSize} • 修改时间: ${modifiedTime}
+                                    </div>
+                                </div>
+                                <div style="color: #007AFF; font-size: 12px;">
+                                    点击分析 →
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                filesHtml += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            chatFilesList.innerHTML = filesHtml;
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 加载聊天文件
+        async function loadChatFile(filePath) {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <h3>分析结果</h3>
+                <p>正在分析文件: ${filePath}</p>
+                <p style="color: #007AFF;">请稍候...</p>
+            `;
+            
+            try {
+                const result = await ipcRenderer.invoke('api-call', {
+                    endpoint: '/api/load-chat',
+                    method: 'POST',
+                    data: { file_path: filePath }
+                });
+                
+                if (!result.ok) {
+                    throw new Error(`HTTP error! status: ${result.status}`);
+                }
+                
+                if (result.data.error) {
+                    throw new Error(result.data.error);
+                }
+                
+                // 显示分析结果
+                displayChatAnalysis(result.data, filePath);
+                
+            } catch (error) {
+                console.error('Failed to load chat file:', error);
+                results.innerHTML = `
+                    <h3>分析结果</h3>
+                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF3B30;">
+                        <h4 style="margin: 0 0 10px 0; color: #FF3B30;">❌ 文件加载失败</h4>
+                        <p>文件: ${filePath}</p>
+                        <p style="color: #666;">错误: ${error.message}</p>
+                        <button onclick="loadChatFilesList()" style="padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">
+                            返回文件列表
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 刷新聊天文件列表
+        async function refreshChatFiles() {
+            const chatFilesList = document.getElementById('chatFilesList');
+            chatFilesList.innerHTML = '<p style="color: #007AFF;">正在刷新文件列表...</p>';
+            
+            // 重置当前选择的类型为全部
+            currentChatType = 'all';
+            switchChatType('all');
+            
+            // 重新加载文件列表
+            await loadChatFilesList();
         }
 
         // 设置页面
@@ -805,39 +1266,58 @@
         
         // 测试后端连接函数
         async function testBackendConnection() {
-            console.log('开始测试后端连接...');
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <h3>后端连接测试</h3>
+                <p style="color: #007AFF;">正在测试后端连接...</p>
+            `;
             
             try {
-                // 测试根路径
-                const rootResult = await ipcRenderer.invoke('api-call', {
-                    endpoint: '/',
-                    method: 'GET',
-                    data: {}
-                });
-                console.log('根路径响应状态:', rootResult.status);
-                console.log('根路径响应数据:', rootResult.data);
-                
-                // 测试API路径
-                const testFilePath = '/Users/huaisang/Documents/研究生/MemoChat/MemoChat_app/test_data/产品需求讨论.txt';
-                const apiResult = await ipcRenderer.invoke('api-call', {
-                    endpoint: '/api/load-chat',
+                const result = await ipcRenderer.invoke('api-call', {
+                    endpoint: '/api/scan-directory',
                     method: 'POST',
-                    data: { file_path: testFilePath }
+                    data: { directory_path: '/Users/huaisang/Documents/研究生/MemoChat/MemoChat_app/test_data' }
                 });
                 
-                console.log('API响应状态:', apiResult.status);
-                console.log('API响应数据:', apiResult.data);
+                console.log('Backend connection test result:', result);
                 
-                if (apiResult.ok) {
-                    alert('后端连接测试成功！检查控制台查看详细信息。');
+                if (result.ok) {
+                    results.innerHTML = `
+                        <h3>后端连接测试</h3>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #34C759;">
+                            <h4 style="margin: 0 0 10px 0; color: #34C759;">✅ 后端连接正常</h4>
+                            <p>找到 ${result.data.files ? result.data.files.length : 0} 个文件</p>
+                            <p style="font-size: 12px; color: #666;">测试目录: ${result.data.directory}</p>
+                            ${result.data.files && result.data.files.length > 0 ? 
+                                `<details style="margin-top: 10px;">
+                                    <summary style="cursor: pointer; color: #007AFF;">查看文件列表</summary>
+                                    <ul style="margin: 10px 0; padding-left: 20px;">
+                                        ${result.data.files.map(file => `<li>${file.name} (${file.size} bytes)</li>`).join('')}
+                                    </ul>
+                                </details>` : ''
+                            }
+                        </div>
+                    `;
                 } else {
-                    console.error('API请求失败:', apiResult.status);
-                    alert(`API请求失败: ${apiResult.status}`);
+                    results.innerHTML = `
+                        <h3>后端连接测试</h3>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF3B30;">
+                            <h4 style="margin: 0 0 10px 0; color: #FF3B30;">❌ 后端连接失败</h4>
+                            <p>状态码: ${result.status}</p>
+                            <p>错误信息: ${result.error || result.data?.error || '未知错误'}</p>
+                        </div>
+                    `;
                 }
-                
             } catch (error) {
-                console.error('网络请求失败:', error);
-                alert(`网络请求失败: ${error.message}`);
+                console.error('Backend connection test failed:', error);
+                results.innerHTML = `
+                    <h3>后端连接测试</h3>
+                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF3B30;">
+                        <h4 style="margin: 0 0 10px 0; color: #FF3B30;">❌ 连接异常</h4>
+                        <p>错误: ${error.message}</p>
+                        <p style="font-size: 12px; color: #666;">可能原因：后端服务未启动或端口被占用</p>
+                    </div>
+                `;
             }
         }
         
@@ -887,37 +1367,8 @@
         }
         
         async function scanChats() {
-            document.getElementById('results').innerHTML = `
-                <h3>分析结果</h3>
-                <p style="color: #007AFF;">正在扫描本地聊天记录...</p>
-            `;
-            
-            try {
-                const result = await ipcRenderer.invoke('api-call', {
-                    endpoint: '/api/scan-chats',
-                    method: 'POST',
-                    data: {}
-                });
-                
-                if (!result.ok) {
-                    throw new Error(`HTTP error! status: ${result.status}`);
-                }
-                
-                if (result.data.error) {
-                    throw new Error(result.data.error);
-                }
-                
-                // 显示扫描结果
-                displayScanResults(result.data);
-                
-            } catch (error) {
-                console.error('扫描失败:', error);
-                document.getElementById('results').innerHTML = `
-                    <h3>分析结果</h3>
-                    <p style="color: #FF3B30;">扫描失败: ${error.message}</p>
-                    <p style="color: #666;">请检查聊天记录路径设置是否正确。</p>
-                `;
-            }
+            // 这个函数现在被 refreshChatFiles 替代
+            await refreshChatFiles();
         }
         
         function displayChatAnalysis(data, filePath) {
@@ -935,39 +1386,360 @@
                     <p style="margin: 5px 0;"><strong>参与人数:</strong> ${data.contacts?.length || 0}</p>
                 </div>
                 
-                <!-- 功能按钮区域 -->
-                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #007AFF;">
-                    <h4 style="margin: 0 0 15px 0; color: #007AFF;">🛠️ 分析功能</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
-                        <button onclick="generateAISummary()" style="padding: 10px 15px; background: #34C759; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                            📝 AI摘要
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #FF6B35;">
+                    <h4 style="margin: 0 0 15px 0; color: #FF6B35;">🤖 AI智能分析</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="generateAISummary()" style="padding: 10px 20px; background: #FF6B35; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            🧠 AI摘要
                         </button>
-                        <button onclick="showFullRecord()" style="padding: 10px 15px; background: #007AFF; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                            📋 完整记录
+                        <button onclick="generateKeywordAnalysis()" style="padding: 10px 20px; background: #34C759; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            🔍 关键词分析
                         </button>
-                        <button onclick="showContentFilter()" style="padding: 10px 15px; background: #FF9500; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                            🔍 内容筛选
+                        <button onclick="generateSentimentAnalysis()" style="padding: 10px 20px; background: #007AFF; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            😊 情感分析
                         </button>
                     </div>
                 </div>
                 
-                <!-- 结果显示区域 -->
-                <div id="analysisResults" style="margin-top: 15px;">
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; color: #666;">
-                        请选择上方功能按钮查看详细分析结果
+                <div id="analysisResults" style="margin-bottom: 15px;">
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #007AFF;">
+                    <h4 style="margin: 0 0 15px 0; color: #007AFF;">💬 聊天列表</h4>
+                    <div id="chatList" style="max-height: 300px; overflow-y: auto;">
+                        ${generateChatList(currentChatData)}
                     </div>
+                </div>
+                
+                <div id="chatRecordArea" style="display: none; background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #34C759;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; color: #34C759;">📋 聊天记录</h4>
+                        <div>
+                            <button id="selectRangeBtn" onclick="toggleRangeSelection()" style="padding: 6px 12px; background: #FF9500; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">
+                                🔍 选择范围
+                            </button>
+                            <button id="generateSummaryBtn" onclick="generateSelectedSummary()" style="padding: 6px 12px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" disabled>
+                                📝 生成摘要
+                            </button>
+                        </div>
+                    </div>
+                    <div id="chatMessages" style="max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px;">
+                    </div>
+                    <div id="selectionInfo" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; display: none;">
+                        <small>已选择 <span id="selectedCount">0</span> 条消息</small>
+                    </div>
+                </div>
+                
+                <div id="summaryResultArea" style="display: none;">
                 </div>
             `;
         }
 
-        // AI摘要功能 - 最终修复版本
+        // 生成聊天列表
+        function generateChatList(chatData) {
+            if (!chatData || chatData.length === 0) {
+                return '<p style="color: #666; text-align: center;">没有找到聊天记录</p>';
+            }
+
+            // 按日期分组聊天记录
+            const chatsByDate = {};
+            chatData.forEach((message, index) => {
+                const date = new Date(message.timestamp).toLocaleDateString('zh-CN');
+                if (!chatsByDate[date]) {
+                    chatsByDate[date] = [];
+                }
+                chatsByDate[date].push({...message, originalIndex: index});
+            });
+
+            let listHtml = '';
+            Object.keys(chatsByDate).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+                const messages = chatsByDate[date];
+                const messageCount = messages.length;
+                const participants = [...new Set(messages.map(m => m.sender || '未知用户'))];
+                
+                listHtml += `
+                    <div onclick="showChatRecord('${date}')" style="
+                        padding: 12px; 
+                        margin-bottom: 8px; 
+                        border: 1px solid #e9ecef; 
+                        border-radius: 6px; 
+                        cursor: pointer; 
+                        transition: all 0.2s;
+                        background: #f8f9fa;
+                    " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: #333;">${date}</strong>
+                                <div style="font-size: 12px; color: #666; margin-top: 2px;">
+                                    ${messageCount} 条消息 • ${participants.length} 人参与
+                                </div>
+                                <div style="font-size: 11px; color: #999; margin-top: 2px;">
+                                    参与者: ${participants.slice(0, 3).join(', ')}${participants.length > 3 ? '...' : ''}
+                                </div>
+                            </div>
+                            <div style="color: #007AFF; font-size: 12px;">
+                                点击查看 →
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            return listHtml;
+        }
+
+        // 显示特定日期的聊天记录
+        function showChatRecord(date) {
+            const chatRecordArea = document.getElementById('chatRecordArea');
+            const chatMessages = document.getElementById('chatMessages');
+            
+            // 筛选出指定日期的消息
+            const dateMessages = currentChatData.filter(message => {
+                const messageDate = new Date(message.timestamp).toLocaleDateString('zh-CN');
+                return messageDate === date;
+            });
+
+            // 显示聊天记录区域
+            chatRecordArea.style.display = 'block';
+            
+            // 更新标题
+            chatRecordArea.querySelector('h4').textContent = `📋 ${date} 的聊天记录 (${dateMessages.length} 条消息)`;
+            
+            // 生成消息列表
+            let messagesHtml = '';
+            dateMessages.forEach((message, index) => {
+                const timestamp = new Date(message.timestamp).toLocaleTimeString('zh-CN');
+                const originalIndex = currentChatData.indexOf(message);
+                
+                messagesHtml += `
+                    <div class="message-item" data-index="${originalIndex}" style="
+                        margin-bottom: 10px; 
+                        padding: 10px; 
+                        border-radius: 6px; 
+                        border-left: 3px solid #007AFF;
+                        background: #ffffff;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    " onclick="toggleMessageSelection(this)">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <strong style="color: #333;">${message.sender || '未知用户'}</strong>
+                            <span style="font-size: 12px; color: #666;">${timestamp}</span>
+                        </div>
+                        <div style="line-height: 1.4; color: #555;">
+                            ${message.content || message.message || ''}
+                        </div>
+                        <div class="selection-indicator" style="
+                            position: absolute; 
+                            right: 10px; 
+                            top: 10px; 
+                            width: 20px; 
+                            height: 20px; 
+                            border: 2px solid #ddd; 
+                            border-radius: 50%; 
+                            display: none;
+                            background: white;
+                        "></div>
+                    </div>
+                `;
+            });
+            
+            chatMessages.innerHTML = messagesHtml;
+            
+            // 重置选择状态
+            selectedMessages = [];
+            updateSelectionInfo();
+            
+            // 滚动到聊天记录区域
+            chatRecordArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 全局变量存储选择状态
+        let isRangeSelectionMode = false;
+        let selectedMessages = [];
+
+        // 切换范围选择模式
+        function toggleRangeSelection() {
+            isRangeSelectionMode = !isRangeSelectionMode;
+            const selectRangeBtn = document.getElementById('selectRangeBtn');
+            const selectionInfo = document.getElementById('selectionInfo');
+            
+            if (isRangeSelectionMode) {
+                selectRangeBtn.textContent = '✅ 完成选择';
+                selectRangeBtn.style.background = '#28a745';
+                selectionInfo.style.display = 'block';
+                
+                // 显示选择指示器
+                document.querySelectorAll('.message-item').forEach(item => {
+                    item.style.position = 'relative';
+                    const indicator = item.querySelector('.selection-indicator');
+                    if (indicator) {
+                        indicator.style.display = 'block';
+                    }
+                });
+            } else {
+                selectRangeBtn.textContent = '🔍 选择范围';
+                selectRangeBtn.style.background = '#FF9500';
+                selectionInfo.style.display = 'none';
+                
+                // 隐藏选择指示器
+                document.querySelectorAll('.message-item').forEach(item => {
+                    const indicator = item.querySelector('.selection-indicator');
+                    if (indicator) {
+                        indicator.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // 切换消息选择状态
+        function toggleMessageSelection(element) {
+            if (!isRangeSelectionMode) return;
+            
+            const index = parseInt(element.dataset.index);
+            const indicator = element.querySelector('.selection-indicator');
+            
+            if (selectedMessages.includes(index)) {
+                // 取消选择
+                selectedMessages = selectedMessages.filter(i => i !== index);
+                element.style.background = '#ffffff';
+                indicator.style.background = 'white';
+                indicator.style.border = '2px solid #ddd';
+            } else {
+                // 选择
+                selectedMessages.push(index);
+                element.style.background = '#e3f2fd';
+                indicator.style.background = '#007AFF';
+                indicator.style.border = '2px solid #007AFF';
+            }
+            
+            updateSelectionInfo();
+        }
+
+        // 更新选择信息
+        function updateSelectionInfo() {
+            const selectedCount = document.getElementById('selectedCount');
+            const generateSummaryBtn = document.getElementById('generateSummaryBtn');
+            
+            selectedCount.textContent = selectedMessages.length;
+            generateSummaryBtn.disabled = selectedMessages.length === 0;
+            
+            if (selectedMessages.length > 0) {
+                generateSummaryBtn.style.background = '#34C759';
+                generateSummaryBtn.style.cursor = 'pointer';
+            } else {
+                generateSummaryBtn.style.background = '#ccc';
+                generateSummaryBtn.style.cursor = 'not-allowed';
+            }
+        }
+
+        // 生成选定消息的摘要 - 使用ContentRenderer
+        async function generateSelectedSummary() {
+            if (selectedMessages.length === 0) {
+                alert('请先选择要分析的消息');
+                return;
+            }
+            
+            const summaryResultArea = document.getElementById('summaryResultArea');
+            summaryResultArea.style.display = 'block';
+            summaryResultArea.innerHTML = `
+                <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #34C759;">
+                    <h4 style="margin: 0 0 15px 0; color: #34C759;">📝 AI摘要生成中...</h4>
+                    <p style="color: #007AFF;">正在分析选定的 ${selectedMessages.length} 条消息...</p>
+                </div>
+            `;
+            
+            try {
+                const result = await ipcRenderer.invoke('api-call', {
+                    endpoint: '/api/generate-summary',
+                    method: 'POST',
+                    data: {
+                        chat_data: selectedMessages.map(index => currentChatData[index])
+                    }
+                });
+                
+                let summaryText = '';
+                if (result && result.data && result.data.summary) {
+                    summaryText = result.data.summary;
+                } else if (result && result.summary) {
+                    summaryText = result.summary;
+                } else if (result && typeof result === 'string') {
+                    summaryText = result;
+                } else {
+                    summaryText = '未收到摘要内容\n\n调试信息：\n' + JSON.stringify(result, null, 2);
+                }
+                
+                // 确保ContentRenderer已初始化
+                if (!contentRenderer) {
+                    initRenderer();
+                }
+                
+                // 创建内容容器
+                const contentContainer = document.createElement('div');
+                contentContainer.style.cssText = 'line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;';
+                
+                // 使用ContentRenderer渲染内容
+                if (summaryText && !summaryText.includes('未收到摘要内容')) {
+                    const waitForRenderer = () => {
+                        if (contentRenderer && contentRenderer.markedReady) {
+                            contentRenderer.renderToElement(summaryText, contentContainer);
+                        } else {
+                            setTimeout(waitForRenderer, 100);
+                        }
+                    };
+                    waitForRenderer();
+                } else {
+                    contentContainer.style.whiteSpace = 'pre-wrap';
+                    contentContainer.textContent = summaryText;
+                }
+                
+                // 显示摘要结果
+                summaryResultArea.innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #34C759;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="margin: 0; color: #34C759;">📝 AI摘要结果</h4>
+                            <div>
+                                <button onclick="exportSummary('${summaryText.replace(/'/g, "\\'")}'', 'selected_summary')" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">
+                                    💾 导出摘要
+                                </button>
+                                <button onclick="copyToClipboard('${summaryText.replace(/'/g, "\\'")}'', 'selected_summary')" style="padding: 6px 12px; background: #007AFF; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                    📋 复制内容
+                                </button>
+                            </div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                            <small style="color: #666;">基于选定的 ${selectedMessages.length} 条消息生成</small>
+                        </div>
+                    </div>
+                `;
+                
+                // 将渲染好的内容添加到结果区域
+                summaryResultArea.querySelector('div').appendChild(contentContainer);
+                
+                // 滚动到摘要结果
+                summaryResultArea.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('生成摘要失败:', error);
+                summaryResultArea.innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #FF3B30;">
+                        <h4 style="margin: 0 0 10px 0; color: #FF3B30;">❌ 生成失败</h4>
+                        <p>摘要生成失败，请检查API配置或稍后重试。</p>
+                    </div>
+                `;
+            }
+        }
+
+        // AI摘要功能 - 使用ContentRenderer进行Markdown渲染
         async function generateAISummary() {
-            console.log('generateAISummary called');
+            console.log('🚀 generateAISummary 函数被调用了！');
             
             if (!currentChatData) {
+                console.log('❌ 没有可用的聊天数据');
                 alert('没有可用的聊天数据');
                 return;
             }
+            
+            console.log('✅ 有聊天数据，开始生成摘要...');
             
             const resultsDiv = document.getElementById('analysisResults');
             resultsDiv.innerHTML = `
@@ -978,7 +1750,7 @@
             `;
             
             try {
-                console.log('Calling API with data:', currentChatData);
+                console.log('📡 准备调用API，数据:', currentChatData);
                 const result = await ipcRenderer.invoke('api-call', {
                     endpoint: '/api/generate-summary',
                     method: 'POST',
@@ -987,68 +1759,41 @@
                     }
                 });
                 
-                console.log('API result:', result);
+                console.log('📥 API返回结果:', result);
                 
-                // 修复：正确访问返回数据的结构
+                // 获取摘要文本
                 let summaryText = '';
                 if (result && result.data && result.data.summary) {
-                    // 标准API响应格式：{ok: true, status: 200, data: {summary: "..."}}
                     summaryText = result.data.summary;
                 } else if (result && result.summary) {
-                    // 备用格式：{summary: "..."}
                     summaryText = result.summary;
                 } else if (result && typeof result === 'string') {
-                    // 直接字符串响应
                     summaryText = result;
                 } else {
-                    // 其他情况，显示调试信息
                     summaryText = '未收到摘要内容\n\n调试信息：\n' + JSON.stringify(result, null, 2);
                 }
                 
                 console.log('Final summary text:', summaryText);
                 
-                // 创建摘要显示容器
-                const summaryContainer = document.createElement('div');
-                summaryContainer.style.cssText = `
-                    background: white; 
-                    padding: 20px; 
-                    border-radius: 8px; 
-                    border-left: 4px solid #34C759;
-                    margin-bottom: 15px;
-                `;
-                
-                // 创建标题
-                const title = document.createElement('h4');
-                title.style.cssText = 'margin: 0 0 15px 0; color: #34C759;';
-                title.textContent = '📝 AI摘要';
-                summaryContainer.appendChild(title);
-                
-                // 创建内容容器
-                const contentDiv = document.createElement('div');
-                contentDiv.style.cssText = 'margin-bottom: 15px; white-space: pre-wrap; line-height: 1.6;';
-                
-                // 显示内容
-                contentDiv.textContent = summaryText;
-                
-                // 尝试使用渲染器（如果可用）
-                try {
-                    if (!contentRenderer) {
-                        console.log('Initializing renderer...');
-                        initRenderer();
-                    }
-                    
-                    if (contentRenderer && contentRenderer.markedReady && summaryText && !summaryText.includes('未收到摘要内容')) {
-                        console.log('Using renderer...');
-                        contentRenderer.renderToElement(summaryText, contentDiv);
-                    } else {
-                        console.log('Renderer not ready or no content, using plain text');
-                    }
-                } catch (renderError) {
-                    console.error('Rendering error:', renderError);
-                    // 如果渲染失败，保持原始文本显示
+                // 确保ContentRenderer已初始化
+                if (!contentRenderer) {
+                    console.log('初始化ContentRenderer...');
+                    initRenderer();
                 }
                 
-                summaryContainer.appendChild(contentDiv);
+                // 创建摘要容器
+                const summaryContainer = document.createElement('div');
+                summaryContainer.style.cssText = 'background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #34C759;';
+                
+                // 创建标题和按钮区域
+                const headerDiv = document.createElement('div');
+                headerDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;';
+                
+                const titleElement = document.createElement('h4');
+                titleElement.style.cssText = 'margin: 0; color: #34C759;';
+                titleElement.textContent = '📝 AI摘要结果';
+                
+                const buttonContainer = document.createElement('div');
                 
                 // 创建导出按钮
                 const exportButton = document.createElement('button');
@@ -1060,10 +1805,10 @@
                     border-radius: 4px; 
                     cursor: pointer;
                     margin-right: 10px;
+                    font-size: 12px;
                 `;
                 exportButton.textContent = '💾 导出摘要';
                 exportButton.onclick = () => exportSummary(summaryText, 'ai_summary');
-                summaryContainer.appendChild(exportButton);
                 
                 // 创建复制按钮
                 const copyButton = document.createElement('button');
@@ -1074,10 +1819,41 @@
                     border: none; 
                     border-radius: 4px; 
                     cursor: pointer;
+                    font-size: 12px;
                 `;
                 copyButton.textContent = '📋 复制内容';
                 copyButton.onclick = () => copyToClipboard(summaryText);
-                summaryContainer.appendChild(copyButton);
+                
+                buttonContainer.appendChild(exportButton);
+                buttonContainer.appendChild(copyButton);
+                headerDiv.appendChild(titleElement);
+                headerDiv.appendChild(buttonContainer);
+                summaryContainer.appendChild(headerDiv);
+                
+                // 创建内容容器
+                const contentDiv = document.createElement('div');
+                contentDiv.style.cssText = 'line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;';
+                
+                // 使用ContentRenderer渲染Markdown内容
+                if (summaryText && !summaryText.includes('未收到摘要内容')) {
+                    // 等待ContentRenderer准备就绪
+                    const waitForRenderer = () => {
+                        if (contentRenderer && contentRenderer.markedReady) {
+                            console.log('使用ContentRenderer渲染Markdown内容');
+                            contentRenderer.renderToElement(summaryText, contentDiv);
+                        } else {
+                            console.log('ContentRenderer未准备好，100ms后重试...');
+                            setTimeout(waitForRenderer, 100);
+                        }
+                    };
+                    waitForRenderer();
+                } else {
+                    // 如果没有有效内容，显示纯文本
+                    contentDiv.style.whiteSpace = 'pre-wrap';
+                    contentDiv.textContent = summaryText;
+                }
+                
+                summaryContainer.appendChild(contentDiv);
                 
                 // 更新显示
                 resultsDiv.innerHTML = '';
@@ -1090,15 +1866,26 @@
                 resultsDiv.innerHTML = `
                     <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF3B30;">
                         <h4 style="margin: 0 0 10px 0; color: #FF3B30;">❌ 生成失败</h4>
-                        <p>摘要生成失败: ${error.message}</p>
-                        <p style="color: #666;">请检查API配置或稍后重试。</p>
-                        <details style="margin-top: 10px;">
-                            <summary style="cursor: pointer; color: #666;">查看详细错误信息</summary>
-                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 5px; font-size: 12px; overflow-x: auto;">${error.stack || error.toString()}</pre>
-                        </details>
+                        <p>摘要生成失败，请检查API配置或稍后重试。</p>
                     </div>
                 `;
             }
+        }
+        
+        // 简化的格式化函数（作为ContentRenderer的后备方案）
+        function formatSummaryContent(text) {
+            if (!text) return '';
+            
+            let formatted = text.trim()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // 基础换行处理
+            formatted = formatted.replace(/\n\n+/g, '<br><br>');
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; white-space: pre-wrap;">${formatted}</div>`;
         }
         
         // 复制到剪贴板功能
