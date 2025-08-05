@@ -1390,7 +1390,7 @@
                     <h4 style="margin: 0 0 15px 0; color: #FF6B35;">🤖 AI智能分析</h4>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button onclick="generateAISummary()" style="padding: 10px 20px; background: #FF6B35; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
-                            🧠 AI摘要
+                            🧠 全文AI摘要
                         </button>
                         <button onclick="generateKeywordAnalysis()" style="padding: 10px 20px; background: #34C759; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
                             🔍 关键词分析
@@ -1419,7 +1419,7 @@
                                 🔍 选择范围
                             </button>
                             <button id="generateSummaryBtn" onclick="generateSelectedSummary()" style="padding: 6px 12px; background: #34C759; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" disabled>
-                                📝 生成摘要
+                                📝 生成局部摘要
                             </button>
                         </div>
                     </div>
@@ -1514,18 +1514,19 @@
                 messagesHtml += `
                     <div class="message-item" data-index="${originalIndex}" style="
                         margin-bottom: 10px; 
-                        padding: 10px; 
+                        padding: 10px 40px 10px 10px; 
                         border-radius: 6px; 
                         border-left: 3px solid #007AFF;
                         background: #ffffff;
                         cursor: pointer;
                         transition: all 0.2s;
+                        position: relative;
                     " onclick="toggleMessageSelection(this)">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding-right: 30px;">
                             <strong style="color: #333;">${message.sender || '未知用户'}</strong>
-                            <span style="font-size: 12px; color: #666;">${timestamp}</span>
+                            <span style="font-size: 12px; color: #666; white-space: nowrap;">${timestamp}</span>
                         </div>
-                        <div style="line-height: 1.4; color: #555;">
+                        <div style="line-height: 1.4; color: #555; padding-right: 30px;">
                             ${message.content || message.message || ''}
                         </div>
                         <div class="selection-indicator" style="
@@ -1538,6 +1539,7 @@
                             border-radius: 50%; 
                             display: none;
                             background: white;
+                            z-index: 10;
                         "></div>
                     </div>
                 `;
