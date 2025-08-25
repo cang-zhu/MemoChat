@@ -1,0 +1,20 @@
+name: Test Notifications
+
+on:
+  workflow_run:
+    workflows: ["Comprehensive Testing"]
+    types: [completed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    
+    steps:
+      - name: Notify Slack on failure
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: '🚨 MemoChat 测试失败！请检查 GitHub Actions。'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

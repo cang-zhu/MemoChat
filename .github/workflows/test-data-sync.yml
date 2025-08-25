@@ -1,0 +1,39 @@
+name: Test Data Management
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # 每周日更新测试数据
+
+jobs:
+  sync-test-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate test data
+        run: |
+          # 检查测试数据文件完整性
+          for file in test_data/*.txt; do
+            if [ ! -s "$file" ]; then
+              echo "Warning: $file is empty"
+            fi
+          done
+          
+      - name: Generate test data report
+        run: |
+          echo "# 测试数据报告" > test-data-report.md
+          echo "" >> test-data-report.md
+          echo "## 文件列表" >> test-data-report.md
+          for file in test_data/*.txt; do
+            size=$(wc -c < "$file")
+            lines=$(wc -l < "$file")
+            echo "- $(basename "$file"): $lines 行, $size 字节" >> test-data-report.md
+          done
+          
+      - name: Upload report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-data-report
+          path: test-data-report.md

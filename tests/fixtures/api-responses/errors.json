@@ -1,0 +1,22 @@
+{
+  "file_not_found": {
+    "error": "File not found",
+    "code": 404,
+    "message": "指定的文件不存在"
+  },
+  "api_key_invalid": {
+    "error": "Invalid API key",
+    "code": 401,
+    "message": "API密钥无效或已过期"
+  },
+  "rate_limit_exceeded": {
+    "error": "Rate limit exceeded",
+    "code": 429,
+    "message": "API调用频率超限，请稍后重试"
+  },
+  "invalid_request": {
+    "error": "Invalid request",
+    "code": 400,
+    "message": "请求参数无效"
+  }
+}

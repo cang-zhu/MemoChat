@@ -1,0 +1,32 @@
+{
+  "load_chat_success": {
+    "messages": [
+      {
+        "timestamp": "2024/2/1 14:30:00",
+        "sender": "用户A",
+        "message": "你好，今天天气怎么样？"
+      },
+      {
+        "timestamp": "2024/2/1 14:31:00",
+        "sender": "用户B",
+        "message": "你好！今天天气很好，阳光明媚。"
+      }
+    ],
+    "participants": ["用户A", "用户B"],
+    "message_count": 2,
+    "time_range": {
+      "start": "2024/2/1 14:30:00",
+      "end": "2024/2/1 14:31:00"
+    }
+  },
+  "generate_summary_success": {
+    "summary": "这是一段关于天气的简短对话。用户A询问天气情况，用户B回复说天气很好，阳光明媚。对话氛围友好，内容简单。",
+    "summary_type": "brief",
+    "word_count": 45,
+    "key_points": [
+      "询问天气情况",
+      "天气良好",
+      "友好对话"
+    ]
+  }
+}
